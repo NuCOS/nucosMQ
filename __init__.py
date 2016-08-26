@@ -1,4 +1,10 @@
-from nucosClient import NucosClient
-from nucosServer import NucosServer
+from __future__ import absolute_import
 
-from nucosLogger import Logger
+import sys
+
+from .nucosClient import NucosClient
+from .nucosServer import NucosServer
+
+from .nucosLogger import Logger
+
+from .nucos23 import ispython3
