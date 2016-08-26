@@ -1,13 +1,27 @@
 from __future__ import print_function
+from __future__ import absolute_import
+
+
+from .nucos23 import ispython3
+if ispython3:
+    import socketserver
+    import queue
+    
+else:
+    import SocketServer as socketserver
+    import Queue as queue
+
 from threading import Thread
-import Queue
+
 import time
-import SocketServer, socket
+import copy
+
+import socket
 from inspect import isfunction
 from collections import defaultdict
-from nucosLogger import Logger
 
-from nucosMessage import NucosIncomingMessage, NucosOutgoingMessage
+from .nucosLogger import Logger
+from .nucosMessage import NucosIncomingMessage, NucosOutgoingMessage
 
 logger = Logger('nucosServer')
 logger.format(["clientip","user"], '[%(asctime)-15s] %(name)-8s %(levelname)-7s %(clientip)s %(user)s -- %(message)s')
@@ -28,8 +42,8 @@ ON_CLIENTEVENT = None
 SHUTDOWN = False
 palace = defaultdict(list)
 
-queue = Queue.Queue()
-        
+queue = queue.Queue()
+
 def cleanup(addr, conn, close=True):
     
     
@@ -62,7 +76,7 @@ def cleanup(addr, conn, close=True):
         
 answer_stack = defaultdict(list)
 
-class ServerHandler(SocketServer.BaseRequestHandler):
+class ServerHandler(socketserver.BaseRequestHandler):
     def handle(self):
         global AUTH
         conn = self.request
@@ -108,7 +122,7 @@ class ServerHandler(SocketServer.BaseRequestHandler):
         return
 
 
-class ThreadingTCPServer(SocketServer.ThreadingTCPServer):
+class ThreadingTCPServer(socketserver.ThreadingTCPServer):
     def server_bind(self):
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind(self.server_address)
@@ -123,7 +137,7 @@ class NucosServer():
     """
     
     def __init__(self,IP,PORT,do_auth=None):
-        self.Logger = logger
+        self.logger = logger
         self.auth_final = None
         global AUTH, ON_CLIENTEVENT
         #addr = (IP,PORT)
@@ -147,7 +161,7 @@ class NucosServer():
         payload,error = message.payload()
         
         if error:
-            logerror = "outgoing msg error %s"%error
+            logerror = "outgoing msg error e: %s pl: %s type(pl): %s"%(error,payload,type(payload))
             self.logger.log(lvl="ERROR",msg=logerror)
             raise Exception(logerror)    
         
@@ -180,7 +194,10 @@ class NucosServer():
     def force_close(self):
         queue.put("kill-server")
         logger.log(lvl="WARNING", msg="server is forced to shut-down now")
-        for addr,conn in connection_sid.items():
+        
+        cosid = copy.copy(connection_sid)
+        
+        for addr,conn in cosid.items():
             #gracefully:
             self.send_via_conn(conn, "shutdown", "now")
             time.sleep(0.1)
@@ -220,9 +237,9 @@ class NucosServer():
         payload,error = message.payload()
         
         if error:
-            logerror = "outgoing msg error %s"%error
-            self.logger.log(lvl="ERROR",msg=logerror)
-            raise Exception(logerror)          
+            logerror = "outgoing msg error e: %s pl: %s type(pl): %s"%(error,payload,type(payload))
+            logger.log(lvl="ERROR",msg=logerror)
+            raise Exception(logerror)
         
         conn.send(payload)
         

@@ -1,12 +1,16 @@
 from __future__ import print_function
+from __future__ import absolute_import
+
 from collections import defaultdict
 import socket
 import time
 from inspect import ismethod, isfunction
 from threading import Thread
 
-from nucosMessage import NucosIncomingMessage, NucosOutgoingMessage, EOM
-from nucosLogger import Logger
+from .nucosMessage import NucosIncomingMessage, NucosOutgoingMessage, EOM, SocketArray
+from .nucosLogger import Logger
+
+from .nucos23 import ispython3
 
 no_talktome = False
 
@@ -57,9 +61,11 @@ class NucosClient():
         """
         self.LISTEN = True
         self.logger.log(lvl="INFO", msg="start listening")
-        full_msg = str()
+        
+        full_msg = SocketArray()
+        
         while True:
-            msg = str()
+            msg = SocketArray()
             try:            
                 msg = self.socket.recv(1024)
             except socket.timeout:
@@ -70,14 +76,15 @@ class NucosClient():
                 self.logger.log(lvl="INFO", msg="stop listening")
                 return
             if msg:
-                full_msg = ''.join([full_msg, msg])
+                full_msg = full_msg.ext(msg)
+                    
                 if len(msg) == 1024:
                     self.logger.log(lvl="DEBUG", msg="JOIN %s"%msg)
                     if not full_msg.endswith(EOM):
                         self.logger.log(lvl="DEBUG", msg="CONT")
                         continue                
                 self._on_serverEvent(full_msg)
-                full_msg = ''
+                full_msg = SocketArray()
             else:
                 break
         self.logger.log(lvl="WARNING", msg="client going down")

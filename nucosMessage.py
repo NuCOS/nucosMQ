@@ -1,9 +1,45 @@
+from __future__ import unicode_literals
+from __future__ import absolute_import
+
 import json
+from .nucos23 import ispython3
+from .nucosLogger import Logger
 
 EOM = "_EOM_" #put a fancy message-limiter inside
 
 NO_DICT_ERROR = 2
 FORMAT_ERROR = 1
+
+logger = Logger('nucosMessage')
+logger.format([], '[%(asctime)-15s] %(name)-8s %(levelname)-7s -- %(message)s')
+logger.level("DEBUG")
+
+if ispython3:
+    class SocketArray(bytearray):
+        def __init__(self,*args):
+            if args:
+                if type(args[0]) is str:
+                    arg = bytearray(args[0].encode())
+                
+                    super(SocketArray,self).__init__(arg)
+                else:
+                    super(SocketArray,self).__init__()
+            else:
+                super(SocketArray,self).__init__()
+                
+        def ext(self,cdr):
+            if type(cdr) is str:
+                cdr = bytearray(cdr.encode())
+            
+            self.extend(cdr)
+            return self
+        
+else: 
+    class SocketArray(str):
+        def __init__(self,*args):
+            super(SocketArray,self).__init__(*args)
+        def ext(self,cdr):
+            return "".join([self,cdr])
 
 class NucosIncomingMessage():
     """
@@ -13,8 +49,12 @@ class NucosIncomingMessage():
     """
     def __init__(self, payload):
         self.payload = payload
+        if ispython3:
+            self.payload = self.payload.decode()
+        
     def msgs(self):
         error = 0
+        
         msgs = self.payload.split(EOM)
         out = []
         for msg in msgs[:-1]:
@@ -43,18 +83,25 @@ class NucosOutgoingMessage():
         """
         
         """
-        out = str()
+        out = SocketArray()
         error = 0
-        try:
-            out = json.dumps(self.data)
-        except:
-            error = NO_DICT_ERROR
-            return out,error
+        
+        out = SocketArray(json.dumps(self.data))
+        
+        logger.log(lvl="DEBUG", msg="Outgoing Message: %s"%(out,))
+            
+#        except:
+#            error = NO_DICT_ERROR
+#            return out,error
             
         if not "event" in self.data['data'].keys():
             error = FORMAT_ERROR
 
         if not "content" in self.data['data'].keys():
             error = FORMAT_ERROR
+        
+        outstr = out.ext(EOM)
+        
+        logger.log(lvl="DEBUG", msg="Outgoing Message extended: %s"%(outstr,))
             
-        return ''.join([out, EOM]), error
+        return outstr, error
