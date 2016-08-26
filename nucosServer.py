@@ -25,7 +25,7 @@ from .nucosMessage import NucosIncomingMessage, NucosOutgoingMessage
 
 logger = Logger('nucosServer')
 logger.format(["clientip","user"], '[%(asctime)-15s] %(name)-8s %(levelname)-7s %(clientip)s %(user)s -- %(message)s')
-logger.level("DEBUG")
+logger.level("INFO")
 
 connection_sid = {}
 connection_auth_uid = {}

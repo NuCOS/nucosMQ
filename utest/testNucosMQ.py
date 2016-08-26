@@ -42,9 +42,11 @@ class UTestClient(unittest.TestCase):
         global client, server
         #wait at least 1 second before closing the client
         time.sleep(1.0)
-        server.force_close()
+        #server.force_close()
+        
+        
         #time.sleep(4.0)
-        #client.close()
+        client.close()
         
     def test_connect(self):
         print("hallo")

@@ -22,7 +22,7 @@ class NucosClient():
     """
     logger = Logger('nucosClient')
     logger.format(["serverip"], '[%(asctime)-15s] %(name)-8s %(levelname)-7s %(serverip)s -- %(message)s')
-    logger.level("DEBUG")
+    logger.level("INFO")
     
     def __init__(self, IP, PORT, uid = ""):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -210,7 +210,7 @@ class NucosClient():
                 
                 return
             if event == "start_auth":
-                self.logger.log(lvl="WARNING", msg="try to react on start_auth")
+                self.logger.log(lvl="DEBUG", msg="try to react on start_auth")
                 if self.uid:
                     self.send("uid",self.uid)
                     self.logger.log(lvl="DEBUG", msg="try to react to start auth")

@@ -12,7 +12,7 @@ FORMAT_ERROR = 1
 
 logger = Logger('nucosMessage')
 logger.format([], '[%(asctime)-15s] %(name)-8s %(levelname)-7s -- %(message)s')
-logger.level("DEBUG")
+logger.level("INFO")
 
 if ispython3:
     class SocketArray(bytearray):
