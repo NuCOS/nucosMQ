@@ -62,7 +62,7 @@ def cleanup(addr, conn, close=True):
         
 answer_stack = defaultdict(list)
 
-class EchoHandler(SocketServer.BaseRequestHandler):
+class ServerHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         global AUTH
         conn = self.request
@@ -106,26 +106,31 @@ class EchoHandler(SocketServer.BaseRequestHandler):
         logger.log(msg='Start auth-process')
         AUTH(addr, conn)
         return
-    
-    
-    
-        
 
-class MyThreadingTCPServer(SocketServer.ThreadingTCPServer):
+
+class ThreadingTCPServer(SocketServer.ThreadingTCPServer):
     def server_bind(self):
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind(self.server_address)
 
 class NucosServer():
+    """
+    base NuCOS socket class on server side
+    
+    implements protocol on top of tcp/ip socket
+    
+    accepts many client connections and starts them in individual threads.
+    """
+    
     def __init__(self,IP,PORT,do_auth=None):
         self.Logger = logger
         self.auth_final = None
         global AUTH, ON_CLIENTEVENT
-        addr = (IP,PORT)
+        #addr = (IP,PORT)
         if isfunction(do_auth):
             self.auth_final = do_auth
             AUTH = self.auth_protocoll
-        self.srv = MyThreadingTCPServer((IP, PORT), EchoHandler)
+        self.srv = ThreadingTCPServer((IP, PORT), ServerHandler)
         ON_CLIENTEVENT = lambda u,x: self.on_clientEvent(u,x)
         self.auth_status = {}
         
@@ -138,9 +143,17 @@ class NucosServer():
         #send to all clients
         data = { "event": event, "content": content }
         message = NucosOutgoingMessage(data)
+        
+        payload,error = message.payload()
+        
+        if error:
+            logerror = "outgoing msg error %s"%error
+            self.logger.log(lvl="ERROR",msg=logerror)
+            raise Exception(logerror)    
+        
         if connection_sid:
             for addr, conn in connection_sid.items():
-                conn.send(message.payload())
+                conn.send(payload)
     
     def join_room(self, room, uid):
         palace[room].append(uid)
@@ -178,19 +191,41 @@ class NucosServer():
         logger.log(lvl="DEBUG", msg="send in room: %s | %s | %s"%(room,event,content))
         data = { "event": event, "content": content }
         message = NucosOutgoingMessage(data)
+        
+        payload,error= message.payload()
+        
+        
+        if error:
+            logerror = "outgoing msg error %s"%error
+            self.logger.log(lvl="ERROR",msg=logerror)
+            raise Exception(logerror)    
+        
         #if connection_sid:
         for _room, uids  in palace.items():
             if _room == room: 
                 for uid in uids:
                     addr = connection_auth_uid[uid]
                     conn = connection_sid[addr]
-                    conn.send(message.payload())
+                    
+                    
+                    
+                    
+                    conn.send(payload)
                     logger.log(lvl="DEBUG", msg="send in room: %s | %s | %s"%(room,event,content))
             
     def send_via_conn(self, conn, event, content):
         data = { "event": event, "content": content }
         message = NucosOutgoingMessage(data)
-        conn.send(message.payload())
+        
+        payload,error = message.payload()
+        
+        if error:
+            logerror = "outgoing msg error %s"%error
+            self.logger.log(lvl="ERROR",msg=logerror)
+            raise Exception(logerror)          
+        
+        conn.send(payload)
+        
         logger.log(lvl="DEBUG", msg="send via conn: %s | %s | %s"%(conn, event,content))
         
     def wait_for_answer(self, conn):

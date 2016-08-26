@@ -6,6 +6,11 @@ NO_DICT_ERROR = 2
 FORMAT_ERROR = 1
 
 class NucosIncomingMessage():
+    """
+    simple incoming message protocol
+    
+    message contains an event and content
+    """
     def __init__(self, payload):
         self.payload = payload
     def msgs(self):
@@ -25,10 +30,31 @@ class NucosIncomingMessage():
             out.append(dict_msg)
         return out, error # a list of dicts, one or maybe several
     
-        
 class NucosOutgoingMessage():
-    #TODO check if data is a well formed input
+    """
+    simple outgoing message protocol
+    
+    data values must be a primitive datatype or json pickable supported
+    data is a well formed input if it is a dict and contains an event and content key.
+    """
     def __init__(self, data):
         self.data = { "data": data }
     def payload(self):
-        return ''.join([json.dumps(self.data), EOM])
+        """
+        
+        """
+        out = str()
+        error = 0
+        try:
+            out = json.dumps(self.data)
+        except:
+            error = NO_DICT_ERROR
+            return out,error
+            
+        if not "event" in self.data['data'].keys():
+            error = FORMAT_ERROR
+
+        if not "content" in self.data['data'].keys():
+            error = FORMAT_ERROR
+            
+        return ''.join([out, EOM]), error
