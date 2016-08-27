@@ -11,8 +11,9 @@ from .nucosMessage import NucosIncomingMessage, NucosOutgoingMessage, EOM, Socke
 from .nucosLogger import Logger
 
 from .nucos23 import ispython3
+from .nucosQueue import NucosQueue
 
-no_talktome = False
+
 
 class NucosClient():
     """
@@ -24,7 +25,7 @@ class NucosClient():
     logger.format(["serverip"], '[%(asctime)-15s] %(name)-8s %(levelname)-7s %(serverip)s -- %(message)s')
     logger.level("INFO")
     
-    def __init__(self, IP, PORT, uid = ""):
+    def __init__(self, IP, PORT, uid = "", ping_timeout = 20.0):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.IP = IP
         self.PORT = PORT
@@ -34,7 +35,10 @@ class NucosClient():
         self.on_disconnect_callbacks = []
         self.uid = uid
         self.is_closed = True
-        #self.queue = Queue.Queue()
+        self.send_later = []
+        self.in_auth_process = True
+        self.queue = NucosQueue()
+        self.ping_timeout = ping_timeout
           
     def start(self,timeout=5.0):
         """
@@ -42,6 +46,7 @@ class NucosClient():
         
         
         """
+        self.in_auth_process = True
         self.logger.log(lvl="INFO", msg="try to connect socket", serverip=self.IP)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.settimeout(timeout)
@@ -69,8 +74,8 @@ class NucosClient():
             try:            
                 msg = self.socket.recv(1024)
             except socket.timeout:
-                #TODO check if server is still connected 
-                pass
+                if not self.ping():
+                    self.close
             
             if not self.LISTEN:   #outcome from the thread (TODO: testing)
                 self.logger.log(lvl="INFO", msg="stop listening")
@@ -138,9 +143,28 @@ class NucosClient():
         self.socket.close()
         self.is_closed = True
         
+    def ping(self):
+        """
+        send a ping event and wait for a pong (blocking call, since it expects the answer right away)
+        """
+        start_time = time.time()
+        while self.in_auth_process:
+            tau = time.time()-start_time
+            time.sleep(0.1)
+            if tau > self.ping_timeout:
+                return False
+        self.logger.log(lvl="INFO", msg="send a ping, expects a pong")
+        self.send("ping", "")
+        self.queue.put_topic("ping","wait")
+        msg = self.queue.get_topic("pong", timeout=10.0)
+        if msg == "done":
+            return True
+        else:
+            return False
+        
     def send(self, event, content):
         """
-        send data to server
+        send data to server, it postpones automatically after auth process
         
         a valid message has content and event.
         
@@ -151,6 +175,17 @@ class NucosClient():
             content = {"key":content}
             
         """
+        if self.in_auth_process:
+            self.send_later.append((event,content))
+            self.logger.log(lvl="WARNING", msg="no send during auth ")
+            return
+        self._send(event, content)
+        
+        
+    def _send(self, event, content):
+        """
+        internal raw send command, do not use from external since it may confuse the auth process
+        """
         data = {"event":event, "content":content}
         outgoing = NucosOutgoingMessage(data)
         
@@ -160,9 +195,10 @@ class NucosClient():
             logerror = "outgoing msg error %s"%error
             self.logger.log(lvl="ERROR",msg=logerror)
             raise Exception(logerror)            
-            
+        
         try:    
             self.socket.send(payload)
+            return True
         except:
             self.logger.log(lvl="WARNING", msg="socket pipe broken")
             self.is_closed = True
@@ -181,6 +217,14 @@ class NucosClient():
             raise Exception("no on_challenge method or function available")
         self.uid = uid
         
+    def _flush(self):
+        """
+        send all messages which are in the message queue and not processed yet for some reason, e.g. because of auth process
+        """
+        for event,content in self.send_later:
+            self.send(event,content)
+        self.send_later = []
+        
     def _on_serverEvent(self, payload):
         """
         is called automatically and processes each incoming Message
@@ -192,10 +236,11 @@ class NucosClient():
         start_auth
         challenge_auth
         auth_final
+        ping
+        pong
         
         """
         incoming = NucosIncomingMessage(payload)
-        
         self.logger.log(lvl="DEBUG", msg="incoming payload: %s  "%payload)
         msgs, error = incoming.msgs()
         if error:
@@ -207,28 +252,34 @@ class NucosClient():
             if event == "shutdown":
                 #time.sleep(0.1)
                 self.send("shutdown","confirmed")
-                
                 return
             if event == "start_auth":
+                self.in_auth_process = True
                 self.logger.log(lvl="DEBUG", msg="try to react on start_auth")
                 if self.uid:
-                    self.send("uid",self.uid)
+                    self._send("uid",self.uid)
                     self.logger.log(lvl="DEBUG", msg="try to react to start auth")
                 else:
                     self.logger.log(lvl="WARNING", msg="no prepare_auth yet called, therefore no uid on hand, auth failed")
                     raise Exception("no prepare_auth yet called, therefore no uid on hand, auth failed")
             elif event == "challenge_auth":
                 signature = self.event_callbacks["challenge"][0](content)
-                self.send("signature",signature)
-                
+                self._send("signature",signature)
             elif event == "auth_final":
                 if content == "success":
                     self.logger.log(lvl="INFO", msg="socket auth_final: %s"%content)
-                    self.send("thanks","i am in")
+                    self._send("thanks","i am in")
+                    self.in_auth_process = False
+                    self._flush()
                 else:
                     self.logger.log(lvl="WARNING", msg="socket auth failed")
                     self.close()
-                    #raise Exception
+            elif event == "pong":
+                msg = self.queue.get_topic("ping", timeout=10.0)
+                if not msg == "wait":
+                    self.logger.log(lvl="ERROR", msg="pong received no ping send %s"%msg)
+                self.logger.log(lvl="INFO", msg="pong received")
+                self.queue.put_topic("pong", "done")
             else:
                 for _event, funcs in self.event_callbacks.items():
                     if _event == "all":
