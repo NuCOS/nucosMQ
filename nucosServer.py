@@ -39,7 +39,9 @@ on_receive = []    #receive-handler
 on_shutdown = []
 AUTH = None
 ON_CLIENTEVENT = None
+SERVE_FOREVER = True
 SHUTDOWN = False
+TIMEOUT = 5.0
 palace = defaultdict(list)
 
 queue = queue.Queue()
@@ -80,7 +82,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
     def handle(self):
         global AUTH
         conn = self.request
-        conn.settimeout(5.0) #longest possible open connection without any message
+        conn.settimeout(TIMEOUT) #longest possible open connection without any message
         addr = self.client_address
         logger.log(msg= 'Incoming connection', clientip=addr)
         connection_sid.update({addr:conn})     #append the socket connection
@@ -95,13 +97,17 @@ class ServerHandler(socketserver.BaseRequestHandler):
                 receivedData = conn.recv(1024)
             except socket.timeout:
                 logger.log(lvl="DEBUG", msg="socket timeout")
+                receivedData = ""
+                #raise Exception
             if not queue.empty():
                 msg = queue.get()
             else:
                 msg = ""
             #print(queue.get(),msg)
             if msg=="kill-server":
-                logger.log(lvl="DEBUG", msg="server killed")
+                logger.log(lvl="DEBUG", msg="connection killed")
+                if connection_sid: #kill all other threads in subsequence
+                    queue.put("kill-server")
                 break
             logger.log(lvl="DEBUG", msg="received package of length %i" % len(receivedData))
             logger.log(lvl="DEBUG", msg="payload: %s"%receivedData)
@@ -112,9 +118,10 @@ class ServerHandler(socketserver.BaseRequestHandler):
             if not receivedData:  #server should stop automatically if no client is in any more:
                 if addr in connection_sid.keys():
                     cleanup(addr, conn, close=False)
-                if not connection_sid: 
-                    logger.log(lvl="DEBUG", msg="stop server now")
+                    logger.log(lvl="DEBUG", msg="stop this connection now")
                     break
+                #if not connection_sid and not SERVE_FOREVER:
+                    
                 
     def authenticate(self, addr, conn):
         logger.log(msg='Start auth-process')
@@ -136,7 +143,7 @@ class NucosServer():
     accepts many client connections and starts them in individual threads.
     """
     
-    def __init__(self,IP,PORT,do_auth=None):
+    def __init__(self,IP,PORT,do_auth=None, serve_forever=True, timeout=5.0):
         self.logger = logger
         self.auth_final = None
         global AUTH, ON_CLIENTEVENT
@@ -146,6 +153,8 @@ class NucosServer():
             AUTH = self.auth_protocoll
         self.srv = ThreadingTCPServer((IP, PORT), ServerHandler)
         ON_CLIENTEVENT = lambda u,x: self.on_clientEvent(u,x)
+        SERVE_FOREVER = serve_forever
+        TIMEOUT = timeout
         self.auth_status = {}
         
     def start(self):
@@ -190,6 +199,8 @@ class NucosServer():
                 self.send_via_conn(connection_sid[addr], "shutdown", "confirmed")
                 #queue.put("kill-auth")
                 #on_shutdown.append(addr)
+            elif event == "ping":
+                self.send_via_conn(connection_sid[addr], "pong", "")
         
     def force_close(self):
         queue.put("kill-server")
@@ -202,6 +213,9 @@ class NucosServer():
             self.send_via_conn(conn, "shutdown", "now")
             time.sleep(0.1)
             cleanup(addr, conn)
+            
+        self.srv.shutdown()
+        self.srv.server_close()
         
     def send_room(self, room, event, content):
         #print ("SID: ",connection_sid)
@@ -289,7 +303,7 @@ class NucosServer():
         #    cleanup(addr,conn)
         #    return
         #if queue.get() == "kill-auth":
-        #    print("kill-auth")
+        #    #print("kill-auth")
         #    cleanup(addr,conn)
         #    return
         ############################################################
