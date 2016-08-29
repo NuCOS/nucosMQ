@@ -100,7 +100,8 @@ class NucosClient():
             else:
                 break
         self.logger.log(lvl="WARNING", msg="client going down")
-        #self.close()
+        #here okay to call??? ->    
+        self.socket.close()
         
 
     def add_event_callback(self, event, handler):
@@ -187,7 +188,7 @@ class NucosClient():
             self.send_later.append((event,content))
             self.logger.log(lvl="WARNING", msg="no send during auth: %s %s"%(event,content))
             return
-        self._send(event, content)
+        return self._send(event, content)
         
         
     def _send(self, event, content):
@@ -202,15 +203,17 @@ class NucosClient():
         if error:
             logerror = "outgoing msg error %s"%error
             self.logger.log(lvl="ERROR",msg=logerror)
-            raise Exception(logerror)            
+            #raise Exception(logerror)
+            return False
         try:    
             self.socket.send(payload)
             return True
-        except:
-            self.logger.log(lvl="WARNING", msg="socket pipe broken")
+        except socket.error, ex:
+            self.logger.log(lvl="ERROR", msg="client socket error %s %s"%(ex,payload))
             self.is_closed = True
             self.LISTEN = False
-            raise Exception("pipe broken")
+            return False
+            #raise Exception("pipe broken")
         
     #def prepare_auth(self, uid, on_challenge=None):
     #    """

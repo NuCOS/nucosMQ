@@ -25,22 +25,24 @@ class NucosLink():
     def bind(self, IP, PORT, uid="anonymous", do_auth=None):
         if self.status:
             self.logger.log(lvl="ERROR", msg="link already in use, call close first to reuse") 
-            return
+            return False
         self.uid=uid
         self.IP = IP
         self.PORT = PORT
         self.link = NucosServer(IP, PORT, do_auth=do_auth, single_server=True)
         self.link.start()
         self.status = "server"
+        return True
         
     def connect(self, IP, PORT, uid="anonymous", on_challenge=None):
         if self.status:
             self.logger.log(lvl="ERROR", msg="link already in use, call close first to reuse")
-            return
+            return False
         self.uid = uid
         self.link = NucosClient(IP, PORT, uid=uid, on_challenge=on_challenge)
         self.link.start()
         self.status = "client"
+        return True
         
     def is_connected(self):
         pass
@@ -49,32 +51,42 @@ class NucosLink():
         if self.status == "server":
             if not self.conn:
                 self.conn = self.link.get_conn(self.uid)
-            self.link.ping(self.conn)
+            if self.conn:
+                return self.link.ping(self.conn)
+            else:
+                self.logger.log(lvl="ERROR", msg="link not established")
+                return False
         elif self.status == "client":
-            self.link.ping()
+            return self.link.ping()
         else:
             self.logger.log(lvl="ERROR", msg="link not established, call bind or connect before")
+        
         
     def send(self, event, content):
         if self.status == "server":
             if not self.conn:
                 self.conn = self.link.get_conn(self.uid)
-            try:
-                self.link.send_via_conn(self.conn, event, content)
-            except:
+            if self.conn:
+                return self.link.send(self.conn, event, content)
+            else:
                 self.logger.log(lvl="ERROR", msg="link not established")
-                return
+                return False
         elif self.status == "client":
-            self.link.send(event, content)
+            return self.link.send(event, content)
         else:
             self.logger.log(lvl="ERROR", msg="link not established, call bind or connect before")
-
+            return False
+        
     def add_event_callback(self, event, handler):
         self.link.add_event_callback(event, handler)
         
     def close(self):
+        if not self.status:
+            self.logger.log(lvl="DEBUG", msg="close already called")
+            return
         self.logger.log(lvl="DEBUG", msg="close called")
         self.link.close()
+        self.conn = None
         self.status = None
         
     

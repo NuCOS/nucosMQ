@@ -60,10 +60,10 @@ def cleanup(addr, conn, close=True):
     logger.log(msg= 'Cleanup', clientip=addr, user=uid)
     if close:
         conn.close()
-    try:
-        connection_sid.pop(addr)
-    except:
-        pass
+    
+    connection_sid.pop(addr)
+    #except:
+    #    pass
     
     try:
         palace.pop(uid)
@@ -254,6 +254,7 @@ class NucosServer():
         self.in_auth_process = []
         self.send_later = []
         self.queue = NucosQueue()
+        self.shutdown_process = []
         
         if isclass(do_auth):
             AUTH = self._auth_protocoll
@@ -320,13 +321,14 @@ class NucosServer():
         
     def send(self, conn, event, content):
         """
-        the send command for a given connection conn, all other send command must call send to prevent auth-protocoll confusion
+        the send command for a given connection conn, all other send commands must call send to prevent auth-protocoll confusion
         """
+        logger.log(lvl="DEBUG", msg="send via conn: %s | %s | %s"%(conn, event, content))
         if conn in self.in_auth_process:
             self.send_later.append((conn, event,content))
             self.logger.log(lvl="WARNING", msg="no send during auth: %s %s %s"%(conn, event,content))
-            return
-        self._send(conn, event, content)
+            return True
+        return self._send(conn, event, content)
         
     def _send(self, conn, event, content):
         """
@@ -338,9 +340,15 @@ class NucosServer():
         if error:
             logerror = "outgoing msg error e: %s pl: %s type(pl): %s"%(error,payload,type(payload))
             self.logger.log(lvl="ERROR",msg=logerror)
-            raise Exception(logerror)
-        conn.send(payload)
-        
+            #raise Exception(logerror)
+            return False
+        try:
+            conn.send(payload)
+            return True
+        except socket.error, ex:
+            self.logger.log(lvl="ERROR",msg="socket error during send-process %s %s %s"%(ex, conn, connection_sid))
+            return False
+            
     def _flush(self):
         """
         send all pre-processed send commands during auth process
@@ -372,14 +380,7 @@ class NucosServer():
                     addr = connection_auth_uid[uid]
                     conn = connection_sid[addr]
                     self.send(conn, event, content)
-                    
-    def send_via_conn(self, conn, event, content):
-        """
-        send a message to a client for given connection data
-        """
-        logger.log(lvl="DEBUG", msg="send via conn: %s | %s | %s"%(conn, event,content))
-        self.send(conn, event, content)
-    
+                        
     def join_room(self, room, uid):
         """
         append a user to a room
@@ -412,11 +413,11 @@ class NucosServer():
             logger.log(lvl="INFO", msg="incoming clientEvent: %s | %s"%(event,content), user=uid)
             if event == "shutdown":
                 #self.send_room(uid, "shutdown", "confirmed")
-                self.send_via_conn(connection_sid[addr], "shutdown", "confirmed")
+                self.send(connection_sid[addr], "shutdown", "confirmed")
                 #queue.put("kill-auth")
-                #on_shutdown.append(addr)
+                self.shutdown_process.append(uid)
             elif event == "ping":
-                self.send_via_conn(connection_sid[addr], "pong", "")
+                self.send(connection_sid[addr], "pong", "")
             elif event == "pong":
                 msg = self.queue.get_topic("ping-server", timeout=10.0)
                 if not msg == "wait":
@@ -441,7 +442,7 @@ class NucosServer():
         cosid = copy.copy(connection_sid)
         for addr,conn in cosid.items():
             #gracefully:
-            self.send_via_conn(conn, "shutdown", "now")
+            self.send(conn, "shutdown", "now")
             time.sleep(0.1)
             cleanup(addr, conn)
         self.srv.shutdown()
@@ -464,6 +465,8 @@ class NucosServer():
         #uid = unicoding(uid)
         start_time = time.time()
         while True:
+            if uid in self.shutdown_process:
+                break
             #print(connection_sid, connection_auth_uid,uid)
             if uid in connection_auth_uid.keys():
                 return connection_sid[connection_auth_uid[uid]]
