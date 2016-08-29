@@ -1,5 +1,6 @@
 from __future__ import print_function
 from __future__ import absolute_import
+#from __future__ import all_feature_names
 
 from collections import defaultdict
 import socket
@@ -82,7 +83,7 @@ class NucosClient():
                 self.logger.log(lvl="WARNING", msg="client socket timeout")
                 if not self.ping():
                     receivedData = receivedData.empty()
-            except socket.error, ex:
+            except socket.error as ex:
                 logger.log(lvl="WARNING", msg="client socket error %s"%ex)
                 receivedData = receivedData.empty()
             if not self.LISTEN:
@@ -208,7 +209,7 @@ class NucosClient():
         try:    
             self.socket.send(payload)
             return True
-        except socket.error, ex:
+        except socket.error as ex:
             self.logger.log(lvl="ERROR", msg="client socket error %s %s"%(ex,payload))
             self.is_closed = True
             self.LISTEN = False

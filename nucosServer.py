@@ -105,7 +105,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
             except socket.timeout:
                 logger.log(lvl="WARNING", msg="server socket timeout")
                 receivedData = receivedData.empty()
-            except socket.error, ex:
+            except socket.error as ex:
                 logger.log(lvl="WARNING", msg="server socket error %s"%ex)
                 receivedData = receivedData.empty()
             ####
@@ -169,7 +169,7 @@ class SingleConnectionServer():
         global AUTH, ON_CLIENTEVENT
         try:
             self.socket.bind(self.IP_PORT)
-        except socket.error, ex:
+        except socket.error as ex:
             logger.log(lvl="DEBUG", msg="socket exception %s"%ex)
             self.socket.close()
             return
@@ -190,7 +190,7 @@ class SingleConnectionServer():
             except socket.timeout:
                 logger.log(lvl="WARNING", msg="server socket timeout")
                 receivedData = receivedData.empty()
-            except socket.error, ex:
+            except socket.error as ex:
                 logger.log(lvl="WARNING", msg="server socket error %s"%ex)
                 receivedData = receivedData.empty()
             if not queue.empty():
@@ -345,7 +345,7 @@ class NucosServer():
         try:
             conn.send(payload)
             return True
-        except socket.error, ex:
+        except socket.error as ex:
             self.logger.log(lvl="ERROR",msg="socket error during send-process %s %s %s"%(ex, conn, connection_sid))
             return False
             
