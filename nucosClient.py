@@ -40,7 +40,7 @@ class NucosClient():
         self.queue = NucosQueue()
         self.ping_timeout = ping_timeout
           
-    def start(self,timeout=5.0):
+    def start(self,timeout=10.0):
         """
         start a non-blocking listening thread
         
@@ -53,6 +53,7 @@ class NucosClient():
         self.error = self.socket.connect_ex((self.IP, self.PORT))
         if self.error:
             self.logger.log(lvl="ERROR", msg="something wrong with socket: %s"%self.error, serverip=self.IP)
+            return
         self.is_closed = False
         t = Thread(target=self._listen)
         t.daemon = True
@@ -67,32 +68,33 @@ class NucosClient():
         self.LISTEN = True
         self.logger.log(lvl="INFO", msg="start listening")
         
-        full_msg = SocketArray()
-        
+        fullData = SocketArray()
         while True:
-            msg = SocketArray()
             try:            
-                msg = self.socket.recv(1024)
+                receivedData = SocketArray(self.socket.recv(1024))
             except socket.timeout:
+                self.logger.log(lvl="WARNING", msg="client socket timeout")
                 if not self.ping():
-                    self.close
-            
-            if not self.LISTEN:   #outcome from the thread (TODO: testing)
+                    receivedData = receivedData.empty()
+            except socket.error, ex:
+                logger.log(lvl="WARNING", msg="client socket error %s"%ex)
+                receivedData = receivedData.empty()
+            if not self.LISTEN:
                 self.logger.log(lvl="INFO", msg="stop listening")
-                return
-            if msg:
-                full_msg = full_msg.ext(msg)
-                    
-                if len(msg) == 1024:
-                    self.logger.log(lvl="DEBUG", msg="JOIN %s"%msg)
+                receivedData = receivedData.empty()
+            if receivedData:
+                fullData = fullData.ext(receivedData)
+                if len(receivedData) == 1024:
+                    self.logger.log(lvl="DEBUG", msg="max length 1024 %s"%receivedData)
                     if not full_msg.endswith(EOM):
-                        self.logger.log(lvl="DEBUG", msg="CONT")
+                        self.logger.log(lvl="DEBUG", msg="continue listening")
                         continue                
-                self._on_serverEvent(full_msg)
-                full_msg = SocketArray()
+                self._on_serverEvent(fullData)
+                fullData = SocketArray()
             else:
                 break
         self.logger.log(lvl="WARNING", msg="client going down")
+        #self.close()
         
 
     def add_event_callback(self, event, handler):
@@ -195,7 +197,6 @@ class NucosClient():
             logerror = "outgoing msg error %s"%error
             self.logger.log(lvl="ERROR",msg=logerror)
             raise Exception(logerror)            
-        
         try:    
             self.socket.send(payload)
             return True

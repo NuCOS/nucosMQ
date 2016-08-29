@@ -20,10 +20,9 @@ if ispython3:
             if args:
                 if type(args[0]) is str:
                     arg = bytearray(args[0].encode())
-                
-                    super(SocketArray,self).__init__(arg)
-                else:
-                    super(SocketArray,self).__init__()
+                super(SocketArray,self).__init__(arg)
+                #else:
+                #super(SocketArray,self).__init__(arg)
             else:
                 super(SocketArray,self).__init__()
                 
@@ -34,12 +33,18 @@ if ispython3:
             self.extend(cdr)
             return self
         
+        def empty(self):
+            return SocketArray(b"")
+        
 else: 
     class SocketArray(str):
         def __init__(self,*args):
             super(SocketArray,self).__init__(*args)
         def ext(self,cdr):
-            return "".join([self,cdr])
+            return SocketArray("".join([self,cdr]))
+        def empty(self):
+            return SocketArray("")
+            
 
 class NucosIncomingMessage():
     """
