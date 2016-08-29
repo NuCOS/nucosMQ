@@ -15,6 +15,12 @@ logger.format([], '[%(asctime)-15s] %(name)-8s %(levelname)-7s -- %(message)s')
 logger.level("INFO")
 
 if ispython3:
+    def unicoding(x):
+        if type(x) is bytearray:
+            x = str(x)
+        else:
+            return x
+            
     class SocketArray(bytearray):
         def __init__(self,*args):
             if args:
@@ -37,6 +43,24 @@ if ispython3:
             return SocketArray(b"")
         
 else: 
+    #class Uni(unicode):
+    #    def __init__(self, *args):
+    #        super(Uni,self).__init__(args)
+    #    def __eq__(self, other):
+    #        print("equalizer: " ,self, other )#,dir(self), dir(other))
+    #        return self[:] == other[:]
+        
+    def unicoding(x):
+        if type(x) is bytearray:
+            return unicode(x)
+        elif type(x) is str:
+            x = x.decode()
+            return x
+        elif type(x) is unicode:
+            return x
+        else:
+            return x
+        
     class SocketArray(str):
         def __init__(self,*args):
             super(SocketArray,self).__init__(*args)
@@ -73,7 +97,7 @@ class NucosIncomingMessage():
             if not "content" in dict_msg.keys():
                 error = FORMAT_ERROR
             out.append(dict_msg)
-        return out, error # a list of dicts, one or maybe several
+        return unicoding(out), error # a list of dicts, one or maybe several
     
 class NucosOutgoingMessage():
     """
@@ -109,4 +133,4 @@ class NucosOutgoingMessage():
         
         logger.log(lvl="DEBUG", msg="Outgoing Message extended: %s"%(outstr,))
             
-        return outstr, error
+        return unicoding(outstr), error

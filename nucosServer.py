@@ -17,11 +17,11 @@ import time
 import copy
 
 import socket
-from inspect import isfunction
+from inspect import isclass, ismethod
 from collections import defaultdict
 
 from .nucosLogger import Logger
-from .nucosMessage import NucosIncomingMessage, NucosOutgoingMessage, SocketArray, EOM
+from .nucosMessage import NucosIncomingMessage, NucosOutgoingMessage, SocketArray, EOM, unicoding
 
 logger = Logger('nucosServer')
 logger.format(["clientip","user"], '[%(asctime)-15s] %(name)-8s %(levelname)-7s %(clientip)s %(user)s -- %(message)s')
@@ -45,6 +45,9 @@ TIMEOUT = 5.0
 palace = defaultdict(list)
 
 queue = queue.Queue()
+from .nucosQueue import NucosQueue
+
+t_auth = None
 
 def cleanup(addr, conn, close=True):
     """
@@ -81,17 +84,20 @@ class ServerHandler(socketserver.BaseRequestHandler):
     """
     The server handler class 
     """
+    no_auth = False
     def handle(self):
-        global AUTH
+        global AUTH, t_auth
         conn = self.request
         conn.settimeout(TIMEOUT) #longest possible open connection without any message
         addr = self.client_address
         logger.log(msg= 'Incoming connection', clientip=addr)
         connection_sid.update({addr:conn})     #append the socket connection
         if AUTH:
-            t = Thread(target=self.authenticate, args=(addr,conn))
-            t.daemon = True
-            t.start()
+            t_auth = Thread(target=self.authenticate, args=(addr,conn))
+            t_auth.daemon = True
+            t_auth.start()
+        else:
+            self.no_auth = True
         fullData = SocketArray()
         while True:
             try:
@@ -123,11 +129,14 @@ class ServerHandler(socketserver.BaseRequestHandler):
                         continue
                 logger.log(lvl="DEBUG", msg="received package of length %i" % len(receivedData))
                 logger.log(lvl="DEBUG", msg="payload: %s"%receivedData)
-                if addr not in connection_auth_addr.keys(): #only for not authenticated clients put the data in the wait-stack
+                if addr not in connection_auth_addr.keys() and not self.no_auth: #only for not authenticated clients put the data in the wait-stack
                     answer_stack[conn].append(fullData)
+                    fullData = SocketArray()
+                    continue
                 if ON_CLIENTEVENT:
                     ON_CLIENTEVENT(addr, fullData)
-                fullData = SocketArray()
+                    fullData = SocketArray()
+                    continue
             else:
                 if addr in connection_sid.keys():
                     cleanup(addr, conn, close=True) #close or not close ???? why ?
@@ -151,27 +160,39 @@ class SingleConnectionServer():
     A single connection Server: accepts only one connection
     """
     def __init__(self, IP_PORT):
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.IP_PORT = IP_PORT
+        self.no_auth = False
+        
     def serve_forever(self):
-        self.s.bind(self.IP_PORT)
-        self.s.listen(1)
-        (conn, addr) = self.s.accept()
+        global AUTH, ON_CLIENTEVENT
+        try:
+            self.socket.bind(self.IP_PORT)
+        except socket.error, ex:
+            logger.log(lvl="DEBUG", msg="socket exception %s"%ex)
+            self.socket.close()
+            return
+        self.socket.listen(1)
+        (conn, addr) = self.socket.accept()
         logger.log(msg= 'Incoming connection (single-server)', clientip=addr)
         connection_sid.update({addr:conn})     #append the socket connection
         if AUTH:
             t = Thread(target=self.authenticate, args=(addr,conn))
             t.daemon = True
             t.start()
+        else:
+            self.no_auth = True
+        fullData = SocketArray()
         while True:
             try:
-                receivedData = conn.recv(1024)
+                receivedData = SocketArray(conn.recv(1024))
             except socket.timeout:
                 logger.log(lvl="WARNING", msg="server socket timeout")
-                receivedData = ""
+                receivedData = receivedData.empty()
             except socket.error, ex:
                 logger.log(lvl="WARNING", msg="server socket error %s"%ex)
-                receivedData = ""
+                receivedData = receivedData.empty()
             if not queue.empty():
                 msg = queue.get()
             else:
@@ -179,18 +200,28 @@ class SingleConnectionServer():
             if msg=="kill-server":
                 logger.log(lvl="DEBUG", msg="single server killed")
                 break
-            logger.log(lvl="DEBUG", msg="received package of length %i" % len(receivedData))
-            logger.log(lvl="DEBUG", msg="payload: %s"%receivedData)
-            if addr not in connection_auth_addr.keys(): #only for not authenticated clients put the data in the wait-stack
-                answer_stack[conn].append(receivedData)
-            if ON_CLIENTEVENT:
-                ON_CLIENTEVENT(addr, receivedData)
-            if not receivedData:  #server should stop automatically if no client is in any more:
-                if addr in connection_sid.keys():
-                    cleanup(addr, conn, close=True)
-                    logger.log(lvl="DEBUG", msg="stop single-server now")
-                    break
-            #self.s.close()
+            if receivedData:
+                fullData = fullData.ext(receivedData)
+                if len(receivedData) == 1024:
+                    logger.log(lvl="DEBUG", msg="max length 1024 %s"%receivedData)
+                    if not fullData.endswith(EOM):
+                        logger.log(lvl="DEBUG", msg="continue listening")
+                        continue
+                logger.log(lvl="DEBUG", msg="received package of length %i" % len(receivedData))
+                logger.log(lvl="DEBUG", msg="payload: %s"%receivedData)
+                if addr not in connection_auth_addr.keys() and not self.no_auth: #only for not authenticated clients put the data in the wait-stack
+                    answer_stack[conn].append(receivedData)
+                    fullData = SocketArray()
+                    continue
+                if ON_CLIENTEVENT:
+                    ON_CLIENTEVENT(addr, fullData)
+                    fullData = SocketArray()
+                    continue
+            else:
+                cleanup(addr, conn, close=True)
+                logger.log(lvl="DEBUG", msg="stop single-server now")
+                break
+
 
     def authenticate(self, addr, conn):
         logger.log(msg='Start auth-process')
@@ -210,26 +241,44 @@ class NucosServer():
     implements protocol on top of tcp/ip socket
     
     accepts either one or many clients (depends on single_server flag) and starts them in individual threads.
+    
+    do_auth is a function handler which accepts 3 arguments: uid, signature, challenge
     """
     
     def __init__(self,IP,PORT, do_auth=None, single_server=False, timeout=5.0):
+        global AUTH, ON_CLIENTEVENT
         self.logger = logger
         self.auth_final = None
         self.IP = IP
         self.PORT = PORT
-        global AUTH, ON_CLIENTEVENT
-        #addr = (IP,PORT)
-        if isfunction(do_auth):
-            self.auth_final = do_auth
-            AUTH = self.auth_protocoll
+        self.in_auth_process = []
+        self.send_later = []
+        self.queue = NucosQueue()
+        
+        if isclass(do_auth):
+            AUTH = self._auth_protocoll
+            self.do_auth_obj = do_auth()
+            if ismethod(self.do_auth_obj.auth_final):
+                self.auth_final = self.do_auth_obj.auth_final
+            else:
+                raise Exception("auth class has no auth_final")
+            if ismethod(self.do_auth_obj.auth_challenge):
+                self.auth_challenge = self.do_auth_obj.auth_challenge
+            else:
+                raise Exception("auth class has no auth_challenge")
+        elif do_auth is None:
+            self.logger.log(lvl="INFO", msg="no auth selected")
+        else:
+            raise Exception("only class as do_auth accepted")
         self.single_server = single_server
         if not single_server:
             self.srv = ThreadingTCPServer((IP, PORT), ServerHandler)
         else:
             self.srv = SingleConnectionServer((IP,PORT))
-        ON_CLIENTEVENT = lambda u,x: self.on_clientEvent(u,x)
+        ON_CLIENTEVENT = lambda u,x: self._on_clientEvent(u,x)
         TIMEOUT = timeout
         self.auth_status = {}
+        self.event_callbacks = defaultdict(list)
         
     def reinitialize(self):
         """
@@ -250,42 +299,86 @@ class NucosServer():
         t.daemon = True
         t.start()
         
-    def ping(self):
+    def ping(self, conn):
         """
         send a ping event and wait for a pong (blocking call, since it expects the answer right away)
         """
         start_time = time.time()
-        while self.in_auth_process:
+        while conn in self.in_auth_process:
             tau = time.time()-start_time
             time.sleep(0.1)
             if tau > self.ping_timeout:
                 return False
         self.logger.log(lvl="INFO", msg="send a ping, expects a pong")
-        self.send("ping", "")
-        self.queue.put_topic("ping","wait")
-        msg = self.queue.get_topic("pong", timeout=5.0)
+        self.send(conn, "ping", "")
+        self.queue.put_topic("ping-server","wait")
+        msg = self.queue.get_topic("pong-server", timeout=5.0)
         if msg == "done":
             return True
         else:
             return False
         
-    def send(self, event, content):
+    def send(self, conn, event, content):
         """
-        send a message to all connected clients
+        the send command for a given connection conn, all other send command must call send to prevent auth-protocoll confusion
+        """
+        if conn in self.in_auth_process:
+            self.send_later.append((conn, event,content))
+            self.logger.log(lvl="WARNING", msg="no send during auth: %s %s %s"%(conn, event,content))
+            return
+        self._send(conn, event, content)
+        
+    def _send(self, conn, event, content):
+        """
+        finalize the send process
         """
         data = { "event": event, "content": content }
         message = NucosOutgoingMessage(data)
-        
         payload,error = message.payload()
-        
         if error:
             logerror = "outgoing msg error e: %s pl: %s type(pl): %s"%(error,payload,type(payload))
             self.logger.log(lvl="ERROR",msg=logerror)
-            raise Exception(logerror)    
+            raise Exception(logerror)
+        conn.send(payload)
         
+    def _flush(self):
+        """
+        send all pre-processed send commands during auth process
+        """
+        for conn,event,content in self.send_later:
+            self.send(conn,event,content)
+        self.send_later = []
+        
+    def send_all(self, event, content):
+        """
+        send a message to all connected clients
+        """
         if connection_sid:
             for addr, conn in connection_sid.items():
-                conn.send(payload)
+                self.send(conn, event, content)
+                
+            
+    def send_room(self, room, event, content):
+        """
+        send a message to all clients in a room
+        """
+        #conn = self.get_conn(room)
+        self.wait_for_auth()
+        logger.log(lvl="DEBUG", msg="send in room: %s | %s | %s"%(room,event,content))
+  
+        for _room, uids  in palace.items():
+            if _room == room: 
+                for uid in uids:
+                    addr = connection_auth_uid[uid]
+                    conn = connection_sid[addr]
+                    self.send(conn, event, content)
+                    
+    def send_via_conn(self, conn, event, content):
+        """
+        send a message to a client for given connection data
+        """
+        logger.log(lvl="DEBUG", msg="send via conn: %s | %s | %s"%(conn, event,content))
+        self.send(conn, event, content)
     
     def join_room(self, room, uid):
         """
@@ -293,9 +386,17 @@ class NucosServer():
         """
         palace[room].append(uid)
         
-    def on_clientEvent(self, addr, payload):
+    def _on_clientEvent(self, addr, payload):
         """
         for every client event this function is called
+        
+        internal events:
+        ----------------
+        
+        shutdown
+        ping
+        pong
+        
         """
         if addr in connection_auth_addr.keys():
             uid = connection_auth_addr[addr]
@@ -306,8 +407,8 @@ class NucosServer():
         if error:
             logger.log(lvl="WARNING", msg="error in incoming message: %s"%error)
         for msg in msgs:
-            event = msg["event"]
-            content = msg["content"]
+            event = unicoding(msg["event"])
+            content = unicoding(msg["content"])
             logger.log(lvl="INFO", msg="incoming clientEvent: %s | %s"%(event,content), user=uid)
             if event == "shutdown":
                 #self.send_room(uid, "shutdown", "confirmed")
@@ -316,8 +417,25 @@ class NucosServer():
                 #on_shutdown.append(addr)
             elif event == "ping":
                 self.send_via_conn(connection_sid[addr], "pong", "")
+            elif event == "pong":
+                msg = self.queue.get_topic("ping-server", timeout=10.0)
+                if not msg == "wait":
+                    self.logger.log(lvl="ERROR", msg="pong received no ping send %s"%msg)
+                self.logger.log(lvl="INFO", msg="pong received")
+                self.queue.put_topic("pong-server", "done")
+            else:
+                for _event, funcs in self.event_callbacks.items():
+                    if _event == "all":
+                        for f in funcs: 
+                            f(content)
+                    if _event == event:
+                        for f in funcs:
+                            f(content)
+                    else:
+                        continue
+            
         
-    def force_close(self):
+    def close(self):
         queue.put("kill-server")
         logger.log(lvl="WARNING", msg="server is forced to shut-down now")
         cosid = copy.copy(connection_sid)
@@ -328,42 +446,38 @@ class NucosServer():
             cleanup(addr, conn)
         self.srv.shutdown()
         self.srv.server_close()
-        
-    def send_room(self, room, event, content):
-        """
-        send a message to all clients in a room
-        """
-        logger.log(lvl="DEBUG", msg="send in room: %s | %s | %s"%(room,event,content))
-        data = { "event": event, "content": content }
-        message = NucosOutgoingMessage(data)
-        
-        payload,error= message.payload()
-        if error:
-            logerror = "outgoing msg error %s"%error
-            self.logger.log(lvl="ERROR",msg=logerror)
-            raise Exception(logerror)    
-        for _room, uids  in palace.items():
-            if _room == room: 
-                for uid in uids:
-                    addr = connection_auth_uid[uid]
-                    conn = connection_sid[addr]
-                    conn.send(payload)
-                    logger.log(lvl="DEBUG", msg="send in room: %s | %s | %s"%(room,event,content))
-            
-    def send_via_conn(self, conn, event, content):
-        """
-        send a message to a client for given connection data
-        """
-        data = { "event": event, "content": content }
-        message = NucosOutgoingMessage(data)
-        payload,error = message.payload()
-        if error:
-            logerror = "outgoing msg error e: %s pl: %s type(pl): %s"%(error,payload,type(payload))
-            logger.log(lvl="ERROR",msg=logerror)
-            raise Exception(logerror)
-        conn.send(payload)
-        
-        logger.log(lvl="DEBUG", msg="send via conn: %s | %s | %s"%(conn, event,content))
+
+                    
+    def wait_for_auth(self):
+        start_time = time.time()
+        while True:
+            if connection_auth_uid:
+                return
+            else:
+                tau = time.time() - start_time
+                if tau > 5:
+                    return
+                else:
+                    time.sleep(0.1)
+                
+    def get_conn(self, uid):
+        #uid = unicoding(uid)
+        start_time = time.time()
+        while True:
+            #print(connection_sid, connection_auth_uid,uid)
+            if uid in connection_auth_uid.keys():
+                return connection_sid[connection_auth_uid[uid]]
+            elif uid == "anonymous": #take the first which is connected
+                if connection_sid:
+                    #print (connection_sid)
+                    return connection_sid.values()[0]
+            else:
+                tau = time.time() - start_time
+                if tau > 5:
+                    return None
+                else:
+                    time.sleep(0.1)
+
         
     def wait_for_answer(self, conn):
         """
@@ -385,16 +499,32 @@ class NucosServer():
                 #logger.log("from wait-loop: %s"%(msgs,))
                 if msgs:
                     return msgs[0]
-            #time.sleep(0.01)
+                
+    def add_event_callback(self, event, handler):
+        """
+        adds an external function or method as a callback for an incoming event
         
-    def auth_protocoll(self, addr, conn):
+        if event is "all" the callback will be called for every event        
+        the argument of an callback is the content
+        
+            def my_callback(content):
+                print(content)
+                
+            Client.add_event_callback("should print content",my_callback)
+        
+        """
+        delegate = lambda x: handler(x)
+        self.event_callbacks[unicoding(event)].append(delegate)
+        
+    def _auth_protocoll(self, addr, conn):
         """
         definition of the authentification protocoll: start_auth, challenge_auth, auth_final
         """
         global SHUTDOWN
         ############################################################
         # step 1: start_auth event
-        self.send_via_conn(conn, "start_auth", "")
+        self.in_auth_process.append(conn)
+        self._send(conn, "start_auth", "")
         data = self.wait_for_answer(conn)
         if data:
             uid = data["content"]
@@ -403,7 +533,8 @@ class NucosServer():
             return
         ############################################################
         # step 2: hand out the challenge and receive signature
-        self.send_via_conn(conn, "challenge_auth", "1234") #TODO introduce an AUTH object with challenge creation
+        challenge = self.auth_challenge(uid=uid)
+        self._send(conn, "challenge_auth", challenge) #TODO introduce an AUTH object with challenge creation
         data = self.wait_for_answer(conn) #TODO define timeout!!!
         if data:
             signature = data["content"]
@@ -420,14 +551,17 @@ class NucosServer():
         #    return
         ############################################################
         # step 3: check the signature and send a result to the client
-        if self.auth_final(uid, signature):
+        if self.auth_final(uid=uid, signature=signature, challenge=challenge):
             connection_auth_uid.update({uid:addr})
             connection_auth_addr.update({addr:uid})
             palace.update({uid:[uid]}) #create a room with the uid as name
-            self.send_via_conn(conn, "auth_final", "success")
+            self._send(conn, "auth_final", "success")
+            self.in_auth_process.remove(conn)
+            self._flush()
         else:
             #print(dir(conn))
-            self.send_via_conn(conn, "auth_final", "failed")
+            self._send(conn, "auth_final", "failed")
+            self.in_auth_process.remove(conn)
             cleanup(addr,conn)
             #self.srv.server_close()
             #self.srv.shutdown()

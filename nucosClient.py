@@ -25,7 +25,7 @@ class NucosClient():
     logger.format(["serverip"], '[%(asctime)-15s] %(name)-8s %(levelname)-7s %(serverip)s -- %(message)s')
     logger.level("INFO")
     
-    def __init__(self, IP, PORT, uid = "", ping_timeout = 20.0):
+    def __init__(self, IP, PORT, uid = "", on_challenge=None, ping_timeout = 20.0):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.IP = IP
         self.PORT = PORT
@@ -36,17 +36,23 @@ class NucosClient():
         self.uid = uid
         self.is_closed = True
         self.send_later = []
-        self.in_auth_process = True
+        self.in_auth_process = False
         self.queue = NucosQueue()
         self.ping_timeout = ping_timeout
-          
+        if on_challenge:
+            if isfunction(on_challenge) or ismethod(on_challenge):
+                self._add_on_challenge(on_challenge)
+            else:
+                raise Exception("no on_challenge method or function available")
+        else:
+            self.in_auth_process = False
+            
     def start(self,timeout=10.0):
         """
         start a non-blocking listening thread
         
         
         """
-        self.in_auth_process = True
         self.logger.log(lvl="INFO", msg="try to connect socket", serverip=self.IP)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.settimeout(timeout)
@@ -157,8 +163,8 @@ class NucosClient():
                 return False
         self.logger.log(lvl="INFO", msg="send a ping, expects a pong")
         self.send("ping", "")
-        self.queue.put_topic("ping","wait")
-        msg = self.queue.get_topic("pong", timeout=10.0)
+        self.queue.put_topic("ping-client","wait")
+        msg = self.queue.get_topic("pong-client", timeout=10.0)
         if msg == "done":
             return True
         else:
@@ -179,7 +185,7 @@ class NucosClient():
         """
         if self.in_auth_process:
             self.send_later.append((event,content))
-            self.logger.log(lvl="WARNING", msg="no send during auth ")
+            self.logger.log(lvl="WARNING", msg="no send during auth: %s %s"%(event,content))
             return
         self._send(event, content)
         
@@ -206,17 +212,14 @@ class NucosClient():
             self.LISTEN = False
             raise Exception("pipe broken")
         
-    def prepare_auth(self, uid, on_challenge=None):
-        """
-        initialize the client side of the general authentification protocol
-        
-        on_challenge is signature delivering function with the content as argument, see self.send().
-        """
-        if isfunction(on_challenge) or ismethod(on_challenge):
-            self._add_on_challenge(on_challenge)
-        else:
-            raise Exception("no on_challenge method or function available")
-        self.uid = uid
+    #def prepare_auth(self, uid, on_challenge=None):
+    #    """
+    #    initialize the client side of the general authentification protocol
+    #    
+    #    on_challenge is signature delivering function with the content as argument, see self.send().
+    #    """#
+
+    #    self.uid = uid
         
     def _flush(self):
         """
@@ -275,12 +278,14 @@ class NucosClient():
                 else:
                     self.logger.log(lvl="WARNING", msg="socket auth failed")
                     self.close()
+            elif event == "ping":
+                self.send("pong", "")
             elif event == "pong":
-                msg = self.queue.get_topic("ping", timeout=10.0)
+                msg = self.queue.get_topic("ping-client", timeout=10.0)
                 if not msg == "wait":
                     self.logger.log(lvl="ERROR", msg="pong received no ping send %s"%msg)
                 self.logger.log(lvl="INFO", msg="pong received")
-                self.queue.put_topic("pong", "done")
+                self.queue.put_topic("pong-client", "done")
             else:
                 for _event, funcs in self.event_callbacks.items():
                     if _event == "all":
