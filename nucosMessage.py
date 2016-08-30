@@ -20,9 +20,9 @@ if ispython3:
     def unicoding(x):
         #print(type(x))
         if type(x) is bytearray:
-            return str(x)
+            return x.decode()
         elif type(x) is bytes:
-            return str(x)
+            return x.decode()
         elif type(x) is str:
             return x
         else:
