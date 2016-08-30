@@ -279,7 +279,7 @@ class NucosServer():
         else:
             self.srv = SingleConnectionServer((IP,PORT))
         ON_CLIENTEVENT = lambda u,x: self._on_clientEvent(u,x)
-        TIMEOUT = timeout
+        #TIMEOUT = timeout
         self.auth_status = {}
         self.event_callbacks = defaultdict(list)
         

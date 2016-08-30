@@ -96,7 +96,7 @@ class NucosClient():
                 fullData = fullData.ext(receivedData)
                 if len(receivedData) == 1024:
                     self.logger.log(lvl="DEBUG", msg="max length 1024 %s"%receivedData)
-                    if not full_msg.endswith(EOM):
+                    if not fullData.endswith(EOM):
                         self.logger.log(lvl="DEBUG", msg="continue listening")
                         continue                
                 self._on_serverEvent(fullData)
