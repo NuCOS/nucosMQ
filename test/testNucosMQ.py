@@ -65,7 +65,7 @@ class UTestClient(unittest.TestCase):
     def test_server_reinitialize(self):
         time.sleep(0.5)
         self.server.close()
-        self.server.reinitialize()
+        #self.server.reinitialize()
         self.server.start()
         self.client.start()
         result = self.client.ping()

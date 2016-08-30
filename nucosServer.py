@@ -283,7 +283,7 @@ class NucosServer():
         self.auth_status = {}
         self.event_callbacks = defaultdict(list)
         
-    def reinitialize(self):
+    def _reinitialize(self):
         """
         re-initialize a killed server
         """
@@ -454,7 +454,7 @@ class NucosServer():
             cleanup(addr, conn)
         self.srv.shutdown()
         self.srv.server_close()
-        self.reinitialize()
+        self._reinitialize()
 
                     
     def wait_for_auth(self):
