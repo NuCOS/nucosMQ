@@ -15,9 +15,10 @@ class UTestClient(unittest.TestCase):
         pass
     
     def test_unicoding(self):
-        a = "abc"
+        a = b"abc"
         b = unicoding(a)
         self.assertEqual(type(b), type(u''))
+        
         
         
         
