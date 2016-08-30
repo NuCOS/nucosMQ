@@ -12,9 +12,12 @@ socketPort = 4000
 from nucosMQ import NucosClient
 from nucosMQ import NucosServer
 
+from nucosMQ import logger as globalLogger
+
 res = []
 
 class Auth():
+    logger = globalLogger
     def auth_final(self, uid, signature, challenge):
         #print("TEST signature",uid, signature)
         allowed = signature == "1234"
