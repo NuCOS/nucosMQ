@@ -41,12 +41,14 @@ class UTestClient(unittest.TestCase):
     def setUp(self):
         self.link_1.bind("127.0.0.1",4000)
         self.link_2.connect("127.0.0.1", 4000)
-                
+        time.sleep(0.2)
+        
     def tearDown(self):
         global res
-        time.sleep(0.5)
-        self.link_1.close()
+        #time.sleep(0.5)
         self.link_2.close()
+        self.link_1.close()
+        time.sleep(0.5)
         res = []
 
     ## Test-Cases

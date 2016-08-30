@@ -454,6 +454,7 @@ class NucosServer():
             cleanup(addr, conn)
         self.srv.shutdown()
         self.srv.server_close()
+        self.reinitialize()
 
                     
     def wait_for_auth(self):
