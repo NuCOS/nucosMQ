@@ -54,6 +54,7 @@ class NucosQueue():
         """
         make sure no other queue item is lost, it is feed in the queue back again
         """
+        import time #due to some threading import bug
         start_time = time.time()
         while True:
             time.sleep(0.1)  #cycle in time
