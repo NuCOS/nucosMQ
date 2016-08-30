@@ -65,6 +65,7 @@ class NucosClient():
         t = Thread(target=self._listen)
         t.daemon = True
         t.start()
+        time.sleep(0.2) #startup time for client
           
     def _listen(self):
         """
@@ -77,18 +78,20 @@ class NucosClient():
         
         fullData = SocketArray()
         while True:
-            try:            
+            try:
                 receivedData = SocketArray(self.socket.recv(1024))
             except socket.timeout:
                 self.logger.log(lvl="WARNING", msg="client socket timeout")
                 if not self.ping():
-                    receivedData = receivedData.empty()
+                    receivedData = SocketArray.empty()
             except socket.error as ex:
-                logger.log(lvl="WARNING", msg="client socket error %s"%ex)
-                receivedData = receivedData.empty()
+                self.logger.log(lvl="WARNING", msg="client socket error %s"%ex)
+                receivedData = SocketArray.empty()
+            except ex:
+                self.logger.log(lvl="WARNING", msg="another exception occured %s"%ex)
             if not self.LISTEN:
                 self.logger.log(lvl="INFO", msg="stop listening")
-                receivedData = receivedData.empty()
+                receivedData = SocketArray.empty()
             if receivedData:
                 fullData = fullData.ext(receivedData)
                 if len(receivedData) == 1024:
@@ -101,8 +104,10 @@ class NucosClient():
             else:
                 break
         self.logger.log(lvl="WARNING", msg="client going down")
-        #here okay to call??? ->    
-        self.socket.close()
+        #here okay to call??? ->  
+        if not self.is_closed:
+            self.socket.close()
+            self.is_closed = True
         
 
     def add_event_callback(self, event, handler):
@@ -149,9 +154,10 @@ class NucosClient():
         self.LISTEN = False
         self.logger.log(lvl="INFO", msg="try to close existing socket")
         self.send("shutdown", "now")
-        time.sleep(1.0) #waiting for an answer to stop the current listening thread
-        self.socket.close()
-        self.is_closed = True
+        time.sleep(0.1) #waiting for an answer to stop the current listening thread
+        if not self.is_closed:
+            self.socket.close()
+            self.is_closed = True
         
     def ping(self):
         """
@@ -211,7 +217,7 @@ class NucosClient():
             return True
         except socket.error as ex:
             self.logger.log(lvl="ERROR", msg="client socket error %s %s"%(ex,payload))
-            self.is_closed = True
+            #self.is_closed = True
             self.LISTEN = False
             return False
             #raise Exception("pipe broken")

@@ -40,7 +40,7 @@ class NucosQueue():
                     self.cycle_buffer.append(msg)
             else:
                 if self.topic_buffer:
-                    keys = [x.keys()[0] for x in self.topic_buffer]
+                    keys = [list(x.keys())[0] for x in self.topic_buffer]
                     if topic in keys:
                         out = self.topic_buffer.pop(keys.index(topic))[topic]
                         break

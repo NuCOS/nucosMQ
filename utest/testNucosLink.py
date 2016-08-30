@@ -39,60 +39,85 @@ class UTestClient(unittest.TestCase):
         #cls.server.start()
                                 
     def setUp(self):
-        pass
-        #self.client.prepare_auth( "testuser", on_challenge)
-        #self.client.start()
+        self.link_1.bind("127.0.0.1",4000)
+        self.link_2.connect("127.0.0.1", 4000)
                 
     def tearDown(self):
-        pass
-        #time.sleep(2.0)
-        #self.client.close()
+        global res
+        time.sleep(0.5)
+        self.link_1.close()
+        self.link_2.close()
+        res = []
 
     ## Test-Cases
     def test_link_simple(self):
-        self.link_1.bind("127.0.0.1",4000)
-        self.link_2.connect("127.0.0.1", 4000)
         self.link_1.send("test", "hallo")
-        time.sleep(2.0)
-        #self.link_2.bind("127.0.0.1",4000)
-        self.link_1.close()
-        self.link_2.close()
-        
-    def test_link_event(self):
+
+    def test_link_event_1(self):
         global res
-        self.link_1.bind("127.0.0.1",4000)
-        self.link_2.connect("127.0.0.1", 4000)
+        self.link_2.add_event_callback("test-alpha", alpha)
+        self.link_1.send("test", "hallo")
+        msg = "hallo1"
+        self.link_1.send("test-alpha",msg)
+        time.sleep(0.5) #time for callback
+        self.assertEqual(msg, res[0])
+        
+    def test_link_event_2(self):
+        global res
         self.link_1.add_event_callback("test-alpha", alpha)
         self.link_2.send("test", "hallo")
-
-        msg = "hallo"
+        msg = "hallo2"
         self.link_2.send("test-alpha",msg)
-        time.sleep(0.4) #time for callback
+        time.sleep(0.5) #time for callback
         self.assertEqual(msg, res[0])
-        self.link_1.close()
-        self.link_2.close()
-        
+ 
     def test_ping_1(self):
-        global res
-        self.link_1.bind("127.0.0.1",4000)
-        self.link_2.connect("127.0.0.1", 4000)
-        self.link_1.ping()
-        time.sleep(0.4)
-        #self.link_2.bind("127.0.0.1",4000)
-        self.link_1.close()
-        self.link_2.close()
-        
+        res = self.link_1.ping()
+        self.assertTrue(res)
+
     def test_ping_2(self):
         global res
-        self.link_1.bind("127.0.0.1",4000)
-        self.link_2.connect("127.0.0.1", 4000)
-        self.link_2.ping()
-        time.sleep(0.4)
-        #self.link_2.bind("127.0.0.1",4000)
-        self.link_1.close()
-        self.link_2.close()
-        
+        res = self.link_2.ping()
+        self.assertTrue(res)
 
+    def test_rebind_1(self):
+        res = self.link_2.bind("127.0.0.1",4000)
+        self.assertFalse(res)
+        
+    def test_rebind_2(self):
+        res = self.link_1.bind("127.0.0.1",4000)
+        self.assertFalse(res)
+        
+    def test_reconnect_1(self):
+        res = self.link_2.connect("127.0.0.1",4000)
+        self.assertFalse(res)
+    
+    def test_reconnect_2(self):
+        res = self.link_1.connect("127.0.0.1",4000)
+        self.assertFalse(res)
+        
+    def test_close_11(self):
+        self.link_1.close()
+        res = self.link_1.send("test", "hallo")
+        self.assertFalse(res)
+        
+    def test_close_12(self):
+        self.link_1.close()
+        time.sleep(1.0)
+        res = self.link_2.send("test", "hallo")
+        self.assertFalse(res)
+        
+    def test_close_22(self):
+        self.link_2.close()
+        res = self.link_2.send("test", "hallo")
+        self.assertFalse(res)
+        
+    def test_close_21(self):
+        self.link_2.close()
+        time.sleep(1.0)
+        res = self.link_1.send("test", "hallo")
+        self.assertFalse(res)
+    
     
 if __name__ == '__main__':
     unittest.main()

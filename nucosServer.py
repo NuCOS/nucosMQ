@@ -104,10 +104,11 @@ class ServerHandler(socketserver.BaseRequestHandler):
                 receivedData = SocketArray(conn.recv(1024))
             except socket.timeout:
                 logger.log(lvl="WARNING", msg="server socket timeout")
-                receivedData = receivedData.empty()
+                receivedData = SocketArray.empty()
             except socket.error as ex:
                 logger.log(lvl="WARNING", msg="server socket error %s"%ex)
-                receivedData = receivedData.empty()
+                receivedData = SocketArray.empty()
+                break
             ####
             # kill server logic:
             if not queue.empty():   
@@ -170,9 +171,9 @@ class SingleConnectionServer():
         try:
             self.socket.bind(self.IP_PORT)
         except socket.error as ex:
-            logger.log(lvl="DEBUG", msg="socket exception %s"%ex)
+            logger.log(lvl="DEBUG", msg="single server socket exception %s"%ex)
             self.socket.close()
-            return
+            raise Exception
         self.socket.listen(1)
         (conn, addr) = self.socket.accept()
         logger.log(msg= 'Incoming connection (single-server)', clientip=addr)
@@ -189,10 +190,11 @@ class SingleConnectionServer():
                 receivedData = SocketArray(conn.recv(1024))
             except socket.timeout:
                 logger.log(lvl="WARNING", msg="server socket timeout")
-                receivedData = receivedData.empty()
+                receivedData = SocketArray.empty()
             except socket.error as ex:
                 logger.log(lvl="WARNING", msg="server socket error %s"%ex)
-                receivedData = receivedData.empty()
+                receivedData = SocketArray.empty()
+                raise Exception
             if not queue.empty():
                 msg = queue.get()
             else:
@@ -285,7 +287,12 @@ class NucosServer():
         """
         re-initialize a killed server
         """
+        while not queue.empty():
+            queue.get()
+        self.auth_status = {}
+        self.shutdown_process = []
         self.logger.log(lvl="DEBUG", msg="reinitialize the server")
+        
         if not self.single_server:
             self.srv = ThreadingTCPServer((self.IP, self.PORT), ServerHandler)
         else:
@@ -299,6 +306,7 @@ class NucosServer():
         t = Thread(target=self.srv.serve_forever)
         t.daemon = True
         t.start()
+        time.sleep(0.2) #startup time for server
         
     def ping(self, conn):
         """
@@ -334,6 +342,7 @@ class NucosServer():
         """
         finalize the send process
         """
+        self.logger.log(lvl="DEBUG", msg="try to do _send: %s %s %s"%(conn, event,content))
         data = { "event": event, "content": content }
         message = NucosOutgoingMessage(data)
         payload,error = message.payload()
@@ -412,9 +421,7 @@ class NucosServer():
             content = unicoding(msg["content"])
             logger.log(lvl="INFO", msg="incoming clientEvent: %s | %s"%(event,content), user=uid)
             if event == "shutdown":
-                #self.send_room(uid, "shutdown", "confirmed")
                 self.send(connection_sid[addr], "shutdown", "confirmed")
-                #queue.put("kill-auth")
                 self.shutdown_process.append(uid)
             elif event == "ping":
                 self.send(connection_sid[addr], "pong", "")
@@ -473,7 +480,7 @@ class NucosServer():
             elif uid == "anonymous": #take the first which is connected
                 if connection_sid:
                     #print (connection_sid)
-                    return connection_sid.values()[0]
+                    return list(connection_sid.values())[0]
             else:
                 tau = time.time() - start_time
                 if tau > 5:

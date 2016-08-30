@@ -40,70 +40,87 @@ class UTestClient(unittest.TestCase):
         cls.client = NucosClient(socketIP, socketPort, uid="testuser", on_challenge=on_challenge)
         cls.server = NucosServer(socketIP, socketPort, do_auth=Auth, single_server=False)
         cls.server.start()
+        
                                 
     def setUp(self):
         #self.client.prepare_auth( "testuser", on_challenge)
         self.client.start()
+        
                 
     def tearDown(self):
-        time.sleep(2.0)
+        global res
+        res = []
         self.client.close()
 
     ## Test-Cases
-    def test_server_force_down(self):
-        time.sleep(1.0)
-        self.server.force_close()
-        result = self.client.ping()
-        self.assertFalse(result)
+    #def test_server_close(self):
+    #    time.sleep(0.5)
+    #    self.server.close()
+    #    result = self.client.ping()
+    #    self.assertFalse(result)
+        
+    def test_server_reinitialize(self):
+        time.sleep(0.5)
+        self.server.close()
         self.server.reinitialize()
         self.server.start()
+        self.client.start()
+        result = self.client.ping()
+        self.assertTrue(result)
         
     def test_client_close(self):
-        time.sleep(1.0)
-        self.client.close()
+        pass
         
     def test_client_send(self):
+        time.sleep(1.5)
         self.client.send("test-event", "a"*971) #test case for exactly 1024 length message
-        result = self.client.ping() #blocking until true or false
-        self.assertTrue(result)
+        #result = self.client.ping() #blocking until true or false
+        #self.assertTrue(result)
         #self.client.close()
         
     def test_10_clients(self):
         c = []
         for n in range(10):
-            cli = NucosClient(socketIP, socketPort)
             z = str(random.random())
-            cli.prepare_auth( z, on_challenge)
+            cli = NucosClient(socketIP, socketPort, uid=z, on_challenge=on_challenge)
+            
+            #cli.prepare_auth( z, on_challenge)
             cli.start()
             c.append(cli)
-        #for cli in c:
-        #       cli.send("test-event", "test-content")
+        for cli in c:
+            cli.send("test-event", "test-content")
         for cli in c:
             cli.close()
         
-            
     def test_client_event(self):
         global res
         self.server.add_event_callback("test-event alpha", alpha)
         msg = "hello alpha"
         self.client.send("test-event alpha","hello alpha")
-        time.sleep(0.5) #need time to get the callback done
-        self.assertEqual(msg, res[0])
-        #time.sleep(2.0)
+        #need time to get the callback done
+        while True:
+            time.sleep(0.1)
+            try:
+                result = res[0]
+                break
+            except:
+                pass
+        self.assertEqual(msg, result)
         
     def test_server_event(self):
         global res
         self.client.add_event_callback("test-event alpha", alpha)
         msg = "hello alpha client"
-        #conn = self.server.get_conn("testuser")
-        #print (conn)
-        #self.server.send_via_conn(conn, "test-event alpha", msg)
         self.server.send_room("testuser", "test-event alpha", msg)
-        time.sleep(1.0) #need time to get the callback done
-        self.assertEqual(msg, res[0])
+        while True:
+            time.sleep(0.1)
+            try:
+                result = res[0]
+                break
+            except:
+                pass
+        self.assertEqual(msg, result)
 
         
-        
-    
 if __name__ == '__main__':
     unittest.main()

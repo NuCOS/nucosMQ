@@ -4,9 +4,11 @@ from __future__ import absolute_import
 import json
 from .nucos23 import ispython3
 from .nucosLogger import Logger
-
-EOM = "_EOM_" #put a fancy message-limiter inside
-
+if ispython3:
+    EOM = b"_EOM_" #put a fancy message-limiter inside
+else:
+    EOM = "_EOM_"
+    
 NO_DICT_ERROR = 2
 FORMAT_ERROR = 1
 
@@ -16,8 +18,13 @@ logger.level("INFO")
 
 if ispython3:
     def unicoding(x):
+        #print(type(x))
         if type(x) is bytearray:
-            x = str(x)
+            return str(x)
+        elif type(x) is bytes:
+            return str(x)
+        elif type(x) is str:
+            return x
         else:
             return x
             
@@ -26,9 +33,9 @@ if ispython3:
             if args:
                 if type(args[0]) is str:
                     arg = bytearray(args[0].encode())
-                super(SocketArray,self).__init__(arg)
-                #else:
-                #super(SocketArray,self).__init__(arg)
+                    super(SocketArray,self).__init__(arg)
+                else:
+                    super(SocketArray,self).__init__(*args)
             else:
                 super(SocketArray,self).__init__()
                 
@@ -39,20 +46,17 @@ if ispython3:
             self.extend(cdr)
             return self
         
+        @classmethod
         def empty(self):
             return SocketArray(b"")
         
 else: 
-    #class Uni(unicode):
-    #    def __init__(self, *args):
-    #        super(Uni,self).__init__(args)
-    #    def __eq__(self, other):
-    #        print("equalizer: " ,self, other )#,dir(self), dir(other))
-    #        return self[:] == other[:]
         
     def unicoding(x):
         if type(x) is bytearray:
-            return unicode(x)
+            return unicode(x) #better use decode here?
+        elif type(x) is bytes:
+            return unicode(x) #better use decode here?
         elif type(x) is str:
             x = x.decode()
             return x
@@ -66,6 +70,8 @@ else:
             super(SocketArray,self).__init__(*args)
         def ext(self,cdr):
             return SocketArray("".join([self,cdr]))
+        
+        @classmethod
         def empty(self):
             return SocketArray("")
             
@@ -84,7 +90,7 @@ class NucosIncomingMessage():
     def msgs(self):
         error = 0
         
-        msgs = self.payload.split(EOM)
+        msgs = self.payload.split(unicoding(EOM))
         out = []
         for msg in msgs[:-1]:
             try:
