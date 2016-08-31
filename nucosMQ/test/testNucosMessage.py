@@ -17,7 +17,7 @@ class UTestClient(unittest.TestCase):
     def test_unicoding(self):
         a = b"abc"
         b = unicoding(a)
-        self.assertEqual(type(b), type(2))
+        self.assertEqual(type(b), type(u''))
         
         
         
