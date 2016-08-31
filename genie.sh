@@ -19,6 +19,7 @@ echo "----------------------------------------------------"
 sleep 1
 echo "python used: "
 which python
+python info.py
 ###################################
 echo "----------------------------------------------------"
 sleep 1
@@ -29,13 +30,13 @@ echo "----------------------------------------------------"
 sleep 1
 echo "now run test in py3"
 nose2 --plugin nose2.plugins.junitxml --junit-xml
-mv nose2-junit.xml $VENV/py3/nose2-py3.xml
+mv nose2-junit.xml nose2-py3.xml
 echo "test done in:"
 python info.py
 sleep 3
 
 deactivate
-
+echo "after deactivate"
 python info.py
 sleep 3
 ###################################
@@ -50,6 +51,7 @@ echo "----------------------------------------------------"
 sleep 1
 echo "python used: "
 which python
+python info.py
 ###################################
 echo "----------------------------------------------------"
 sleep 1
@@ -60,7 +62,7 @@ echo "----------------------------------------------------"
 sleep 1
 echo "now run test in py2"
 nose2 --plugin nose2.plugins.junitxml --junit-xml
-mv nose2-junit.xml $VENV/py2/nose2-py2.xml
+mv nose2-junit.xml nose2-py2.xml
 echo "test done in:"
 python info.py
 sleep 3
