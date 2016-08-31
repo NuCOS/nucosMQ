@@ -1,7 +1,13 @@
-import sys
+import sys, os
+
+if not len(sys.argv) == 3:
+    raise Exception("give me 2 arguments")
 
 filename = sys.argv[1]
 py = sys.argv[2]
+
+if not os.path.exists(filename):
+    raise Exception("file not found")
 
 raw_fn = filename.split(".")[0]
 
@@ -9,8 +15,10 @@ f = open(filename, "r")
 txt = f.read()
 f.close()
 
-f = open(raw_fn+"_"+py+".xml", "w")
-txt = txt.replace("UTestClient", "UTestClient_"+py)
+f = open("".join([raw_fn,"_",py,".xml"]), "w")
+txt = txt.replace("UTestClient", "".join(["UTestClient_",py]))
 f.write(txt)
 f.close
+
+os.remove(filename)
 
