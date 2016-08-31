@@ -23,7 +23,7 @@ long_description = open(os.path.join(rootdir, 'README.md')).read()
 
 # Python 2.7 or later needed
 if sys.version_info < (2, 7, 0, 'final', 0):
-    raise SystemExit, 'Python 2.7 or later is required!'
+    raise SystemExit('Python 2.7 or later is required!')
 
 # Build a list of all project modules
 packages = []
@@ -87,5 +87,7 @@ setup(name='python-' + name,
       package_data=package_data,
       scripts=scripts,
       data_files=data_files,
-      test_suite='setup.my_test_suite',
+      test_suite='setup.my_test_suite', 
+      install_requires=['distribute'],
+
       )
