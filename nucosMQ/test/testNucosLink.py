@@ -104,6 +104,7 @@ class UTestLink(unittest.TestCase):
         
     def test_close_11(self):
         self.link_1.close()
+        time.sleep(0.5)
         res = self.link_1.send("test", "hallo")
         self.assertFalse(res)
         answer = self.link_2.is_connected()

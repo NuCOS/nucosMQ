@@ -68,9 +68,9 @@ class UTestClient(unittest.TestCase):
         result = self.client.ping()
         self.assertTrue(result)
         
-    def test_timeout_ping(self):
-        self.client.ping()
-        time.sleep(12.0)
+    ##def test_timeout_ping(self):
+    #    self.client.ping()
+    #    time.sleep(12.0)
         #self.server.close()
         #time.sleep(10.0)
         

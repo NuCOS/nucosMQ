@@ -88,6 +88,6 @@ setup(name='python-' + name,
       scripts=scripts,
       data_files=data_files,
       test_suite='setup.my_test_suite', 
-      install_requires=['distribute'],
+      #install_requires=['distribute'],
 
       )

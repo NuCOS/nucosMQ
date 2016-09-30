@@ -1,0 +1,65 @@
+<testsuite errors="0" failures="0" name="nose2-junit" skipped="0" tests="21" time="33.892">
+  <testcase classname="testNucosMessage.UTest_py2_Client" name="test_unicoding" time="0.000078">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosLink.UTest_py2_Link" name="test_close_11" time="1.805118">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosLink.UTest_py2_Link" name="test_close_12" time="1.805332">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosLink.UTest_py2_Link" name="test_close_21" time="1.704204">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosLink.UTest_py2_Link" name="test_close_22" time="1.203785">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosLink.UTest_py2_Link" name="test_link_event_1" time="1.704301">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosLink.UTest_py2_Link" name="test_link_event_2" time="1.704493">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosLink.UTest_py2_Link" name="test_link_simple" time="1.203807">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosLink.UTest_py2_Link" name="test_ping_1" time="1.404592">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosLink.UTest_py2_Link" name="test_ping_2" time="1.404429">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosLink.UTest_py2_Link" name="test_rebind_1" time="1.203627">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosLink.UTest_py2_Link" name="test_rebind_2" time="1.203636">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosLink.UTest_py2_Link" name="test_reconnect_1" time="1.203357">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosLink.UTest_py2_Link" name="test_reconnect_2" time="1.203730">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosMQ.UTest_py2_Client" name="test_10_clients" time="4.313673">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosMQ.UTest_py2_Client" name="test_client_event" time="1.402690">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosMQ.UTest_py2_Client" name="test_client_send" time="1.302736">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosMQ.UTest_py2_Client" name="test_join_room" time="1.903781">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosMQ.UTest_py2_Client" name="test_room_callback" time="1.903736">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosMQ.UTest_py2_Client" name="test_server_event" time="1.402718">
+    <system-err />
+  </testcase>
+  <testcase classname="testNucosMQ.UTest_py2_Client" name="test_server_reinitialize" time="2.705811">
+    <system-err />
+  </testcase>
+</testsuite>
