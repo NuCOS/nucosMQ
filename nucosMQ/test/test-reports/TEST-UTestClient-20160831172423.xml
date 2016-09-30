@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<testsuite errors="1" failures="0" name="UTestClient-20160831172423" tests="1" time="1.304">
+	<testcase classname="UTestClient" name="test_join_room" time="1.304">
+		<error message="send_room() takes exactly 4 arguments (3 given)" type="TypeError">
+<![CDATA[Traceback (most recent call last):
+  File "testNucosMQ.py", line 83, in test_join_room
+    self.server.send_room("weather", "sunny")
+TypeError: send_room() takes exactly 4 arguments (3 given)
+]]>		</error>
+	</testcase>
+	<system-out>
+<![CDATA[]]>	</system-out>
+	<system-err>
+<![CDATA[]]>	</system-err>
+</testsuite>

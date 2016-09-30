@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<testsuite errors="0" failures="0" name="UTestClient-20160925112545" tests="8" time="16.238">
+	<testcase classname="UTestClient" name="test_10_clients" time="4.316"/>
+	<testcase classname="UTestClient" name="test_client_close" time="1.302"/>
+	<testcase classname="UTestClient" name="test_client_event" time="1.403"/>
+	<testcase classname="UTestClient" name="test_client_send" time="1.302"/>
+	<testcase classname="UTestClient" name="test_join_room" time="1.904"/>
+	<testcase classname="UTestClient" name="test_room_callback" time="1.904"/>
+	<testcase classname="UTestClient" name="test_server_event" time="1.403"/>
+	<testcase classname="UTestClient" name="test_server_reinitialize" time="2.706"/>
+	<system-out>
+<![CDATA[Event is ping ...
+]]>	</system-out>
+	<system-err>
+<![CDATA[]]>	</system-err>
+</testsuite>

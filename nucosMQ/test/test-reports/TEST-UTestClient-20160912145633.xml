@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<testsuite errors="2" failures="0" name="UTestClient-20160912145633" tests="8" time="15.044">
+	<testcase classname="UTestClient" name="test_10_clients" time="4.320"/>
+	<testcase classname="UTestClient" name="test_client_close" time="1.303"/>
+	<testcase classname="UTestClient" name="test_client_event" time="1.403"/>
+	<testcase classname="UTestClient" name="test_client_send" time="1.303"/>
+	<testcase classname="UTestClient" name="test_server_event" time="1.403"/>
+	<testcase classname="UTestClient" name="test_server_reinitialize" time="2.707"/>
+	<testcase classname="UTestClient" name="test_join_room" time="1.303">
+		<error message="NucosClient instance has no attribute 'client'" type="AttributeError">
+<![CDATA[Traceback (most recent call last):
+  File "testNucosMQ.py", line 81, in test_join_room
+    self.client.subscripe("weather")
+  File "../../nucosMQ/nucosClient.py", line 252, in subscripe
+    self.client.send("subscripe", room)
+AttributeError: NucosClient instance has no attribute 'client'
+]]>		</error>
+	</testcase>
+	<testcase classname="UTestClient" name="test_room_callback" time="1.303">
+		<error message="NucosClient instance has no attribute 'client'" type="AttributeError">
+<![CDATA[Traceback (most recent call last):
+  File "testNucosMQ.py", line 95, in test_room_callback
+    self.client.subscripe("weather")
+  File "../../nucosMQ/nucosClient.py", line 252, in subscripe
+    self.client.send("subscripe", room)
+AttributeError: NucosClient instance has no attribute 'client'
+]]>		</error>
+	</testcase>
+	<system-out>
+<![CDATA[]]>	</system-out>
+	<system-err>
+<![CDATA[]]>	</system-err>
+</testsuite>

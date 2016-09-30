@@ -31,7 +31,7 @@ def alpha(x):
 def on_challenge(x):
     return "1234"
 
-class UTestClient(unittest.TestCase):
+class UTestLink(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.link_1 = NucosLink()
@@ -54,6 +54,10 @@ class UTestClient(unittest.TestCase):
     ## Test-Cases
     def test_link_simple(self):
         self.link_1.send("test", "hallo")
+        answer = self.link_1.is_connected()
+        self.assertTrue(answer)
+        answer = self.link_2.is_connected()
+        self.assertTrue(answer)
 
     def test_link_event_1(self):
         global res
@@ -102,23 +106,31 @@ class UTestClient(unittest.TestCase):
         self.link_1.close()
         res = self.link_1.send("test", "hallo")
         self.assertFalse(res)
+        answer = self.link_2.is_connected()
+        self.assertFalse(answer)
         
     def test_close_12(self):
         self.link_1.close()
-        time.sleep(1.0)
+        time.sleep(0.5)
         res = self.link_2.send("test", "hallo")
         self.assertFalse(res)
+        answer = self.link_1.is_connected()
+        self.assertFalse(answer)
         
     def test_close_22(self):
         self.link_2.close()
         res = self.link_2.send("test", "hallo")
         self.assertFalse(res)
+        answer = self.link_2.is_connected()
+        self.assertFalse(answer)
         
     def test_close_21(self):
         self.link_2.close()
-        time.sleep(1.0)
+        time.sleep(0.5)
         res = self.link_1.send("test", "hallo")
         self.assertFalse(res)
+        answer = self.link_1.is_connected()
+        self.assertFalse(answer)
     
     
 if __name__ == '__main__':

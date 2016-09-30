@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<testsuite errors="1" failures="0" name="UTestClient-20160831172454" tests="1" time="1.304">
+	<testcase classname="UTestClient" name="test_join_room" time="1.304">
+		<error message="list index out of range" type="IndexError">
+<![CDATA[Traceback (most recent call last):
+  File "testNucosMQ.py", line 84, in test_join_room
+    self.assertEqual(("weather","sunny"),res[0])
+IndexError: list index out of range
+]]>		</error>
+	</testcase>
+	<system-out>
+<![CDATA[]]>	</system-out>
+	<system-err>
+<![CDATA[]]>	</system-err>
+</testsuite>

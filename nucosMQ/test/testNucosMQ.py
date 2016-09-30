@@ -37,6 +37,10 @@ def alpha(x):
 def on_challenge(x):
     return "1234"
 
+def weather_callback(x):
+    global res
+    res.append(("weather-callback",x))
+
 class UTestClient(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -48,39 +52,63 @@ class UTestClient(unittest.TestCase):
     def setUp(self):
         #self.client.prepare_auth( "testuser", on_challenge)
         self.client.start()
+        time.sleep(0.5)
         
-                
     def tearDown(self):
         global res
         res = []
+        time.sleep(0.5)
         self.client.close()
-
-    ## Test-Cases
-    #def test_server_close(self):
-    #    time.sleep(0.5)
-    #    self.server.close()
-    #    result = self.client.ping()
-    #    self.assertFalse(result)
         
     def test_server_reinitialize(self):
-        time.sleep(0.5)
         self.server.close()
-        #self.server.reinitialize()
+        time.sleep(0.5)
         self.server.start()
         self.client.start()
         result = self.client.ping()
         self.assertTrue(result)
         
-    def test_client_close(self):
-        pass
+    def test_timeout_ping(self):
+        self.client.ping()
+        time.sleep(12.0)
+        #self.server.close()
+        #time.sleep(10.0)
+        
         
     def test_client_send(self):
-        time.sleep(1.5)
         self.client.send("test-event", "a"*971) #test case for exactly 1024 length message
         #result = self.client.ping() #blocking until true or false
         #self.assertTrue(result)
         #self.client.close()
         
+    def test_join_room(self):
+        self.client.subscripe("weather")
+        time.sleep(0.5) #needs to process the subcribe (maybe put the sleep time inside a specific subscribe call?)
+        self.client.add_event_callback("today", weather_callback)
+        self.server.publish("weather", "today", "sunny")
+        while True:
+            time.sleep(0.1)
+            try:
+                result = res[0]
+                break
+            except:
+                pass
+        self.assertEqual(("weather-callback",u"sunny"),result)
+            
+    def test_room_callback(self):
+        self.client.subscripe("weather")
+        time.sleep(0.5)
+        self.client.add_room_callback("weather", weather_callback)
+        self.server.publish("weather", "today", "sunny")
+        while True:
+            time.sleep(0.1)
+            try:
+                result = res[0]
+                break
+            except:
+                pass
+        self.assertEqual(("weather-callback",u"sunny"),result)
+            
     def test_10_clients(self):
         c = []
         for n in range(10):
@@ -114,7 +142,7 @@ class UTestClient(unittest.TestCase):
         global res
         self.client.add_event_callback("test-event alpha", alpha)
         msg = "hello alpha client"
-        self.server.send_room("testuser", "test-event alpha", msg)
+        self.server.publish("testuser", "test-event alpha", msg)
         while True:
             time.sleep(0.1)
             try:

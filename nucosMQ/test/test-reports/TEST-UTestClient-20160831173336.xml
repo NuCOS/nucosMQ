@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<testsuite errors="1" failures="0" name="UTestClient-20160831173336" tests="1" time="1.905">
+	<testcase classname="UTestClient" name="test_join_room" time="1.905">
+		<error message="Tuples differ: ('weather', 'sunny') != ('weather ', u'sunny')
+
+First differing element 0:
+weather
+weather 
+
+- ('weather', 'sunny')
++ ('weather ', u'sunny')
+?          +   +
+" type="AssertionError">
+<![CDATA[Traceback (most recent call last):
+  File "testNucosMQ.py", line 94, in test_join_room
+    self.assertEqual(("weather","sunny"),result)
+AssertionError: Tuples differ: ('weather', 'sunny') != ('weather ', u'sunny')
+
+First differing element 0:
+weather
+weather 
+
+- ('weather', 'sunny')
++ ('weather ', u'sunny')
+?          +   +
+
+]]>		</error>
+	</testcase>
+	<system-out>
+<![CDATA[]]>	</system-out>
+	<system-err>
+<![CDATA[]]>	</system-err>
+</testsuite>

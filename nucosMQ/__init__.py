@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import sys
 from .nucosLogger import Logger
 
-logger = Logger("globalLogger")
+logger = Logger("globalLogger", [])
 
 from .nucosClient import NucosClient
 from .nucosServer import NucosServer

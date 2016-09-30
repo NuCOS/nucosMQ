@@ -1,0 +1,10 @@
+<?xml version="1.0" ?>
+<testsuite errors="0" failures="0" name="UTestClient-20160912150357" tests="1" time="1.904">
+	<testcase classname="UTestClient" name="test_room_callback" time="1.904"/>
+	<system-out>
+<![CDATA[defaultdict(<type 'dict'>, {'weather': {'all': [<function <lambda> at 0x7febc932b8c0>]}})
+weather {'all': [<function <lambda> at 0x7febc932b8c0>]}
+]]>	</system-out>
+	<system-err>
+<![CDATA[]]>	</system-err>
+</testsuite>

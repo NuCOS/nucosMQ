@@ -1,18 +1,19 @@
 import logging
 
 class Logger():
-    def __init__(self, name):
+    def __init__(self, name, items):
         self.logger = logging.getLogger(name)
-        self.items = []
-
-    def format(self, items, FORMAT):
-        #FORMAT = '%(asctime)-15s %(clientip)s %(user)-8s %(message)s'
+        self.name = name
         self.items = items
+
+    def format(self, FORMAT):
+        if self.logger.handlers:
+            return
         handler = logging.StreamHandler()
         formatter = logging.Formatter(FORMAT)
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
-        
+
     def level(self, loglevel):
         numeric_level = getattr(logging, loglevel.upper(), None)
         if not isinstance(numeric_level, int):
@@ -38,5 +39,5 @@ class Logger():
             if not isinstance(numeric_level, int):
                 raise ValueError('Invalid log level: %s' % lvl)
         else:
-            numeric_level = logging.INFO
+            numeric_level = logging.INFO       
         self.logger.log(numeric_level, msg, extra=logdict)

@@ -12,13 +12,13 @@ else:
 NO_DICT_ERROR = 2
 FORMAT_ERROR = 1
 
-logger = Logger('nucosMessage')
-logger.format([], '[%(asctime)-15s] %(name)-8s %(levelname)-7s -- %(message)s')
+logger = Logger('nucosMessage', [])
+logger.format('[%(asctime)-15s] %(name)-8s %(levelname)-7s -- %(message)s')
 logger.level("INFO")
 
 if ispython3:
     def unicoding(x):
-        #print(type(x))
+        #print(type(x),x[0])
         if type(x) is bytearray:
             return x.decode()
         elif type(x) is bytes:

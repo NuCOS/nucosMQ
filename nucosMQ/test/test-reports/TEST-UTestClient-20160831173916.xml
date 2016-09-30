@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<testsuite errors="1" failures="0" name="UTestClient-20160831173916" tests="1" time="1.804">
+	<testcase classname="UTestClient" name="test_join_room" time="1.804">
+		<error message="NucosClient instance has no attribute 'add_room_callback'" type="AttributeError">
+<![CDATA[Traceback (most recent call last):
+  File "testNucosMQ.py", line 84, in test_join_room
+    self.client.add_room_callback("weather", weather_callback)
+AttributeError: NucosClient instance has no attribute 'add_room_callback'
+]]>		</error>
+	</testcase>
+	<system-out>
+<![CDATA[]]>	</system-out>
+	<system-err>
+<![CDATA[]]>	</system-err>
+</testsuite>

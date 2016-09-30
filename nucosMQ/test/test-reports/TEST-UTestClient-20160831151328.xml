@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<testsuite errors="1" failures="0" name="UTestClient-20160831151328" tests="1" time="0.000">
+	<testcase classname="UTestClient" name="test_unicoding" time="0.000">
+		<error message="&lt;type 'unicode'&gt; != &lt;type 'int'&gt;" type="AssertionError">
+<![CDATA[Traceback (most recent call last):
+  File "testNucosMessage.py", line 20, in test_unicoding
+    self.assertEqual(type(b), type(2))
+AssertionError: <type 'unicode'> != <type 'int'>
+]]>		</error>
+	</testcase>
+	<system-out>
+<![CDATA[]]>	</system-out>
+	<system-err>
+<![CDATA[]]>	</system-err>
+</testsuite>

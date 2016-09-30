@@ -5,8 +5,8 @@ import socket
 from .nucos23 import ispython3
 from .nucosQueue import NucosQueue
 
-from nucosMQ import NucosServer
-from nucosMQ import NucosClient
+from .nucosServer import NucosServer
+from .nucosClient import NucosClient
 
 class NucosLink():
     """
@@ -14,8 +14,8 @@ class NucosLink():
     
     unified api
     """
-    logger = Logger('nucosLink')
-    logger.format([], '[%(asctime)-15s] %(name)-8s %(levelname)-7s -- %(message)s')
+    logger = Logger('nucosLink', [])
+    logger.format('[%(asctime)-15s] %(name)-8s %(levelname)-7s -- %(message)s')
     logger.level("DEBUG")
     
     def __init__(self):
@@ -45,7 +45,15 @@ class NucosLink():
         return True
         
     def is_connected(self):
-        pass
+        if self.status == "server":
+            if not self.conn:
+                self.conn = self.link.get_conn(self.uid)
+            if self.conn: 
+                return True
+            else:
+                return False
+        elif self.status == "client":
+            return self.link.is_connected()
     
     def ping(self):
         if self.status == "server":
@@ -60,6 +68,7 @@ class NucosLink():
             return self.link.ping()
         else:
             self.logger.log(lvl="ERROR", msg="link not established, call bind or connect before")
+        
         
         
     def send(self, event, content):

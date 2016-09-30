@@ -23,9 +23,9 @@ from collections import defaultdict
 from .nucosLogger import Logger
 from .nucosMessage import NucosIncomingMessage, NucosOutgoingMessage, SocketArray, EOM, unicoding
 
-logger = Logger('nucosServer')
-logger.format(["clientip","user"], '[%(asctime)-15s] %(name)-8s %(levelname)-7s %(clientip)s %(user)s -- %(message)s')
-logger.level("DEBUG")
+logger = Logger('nucosServer', ["clientip","user"])
+logger.format('[%(asctime)-15s] %(name)-8s %(levelname)-7s %(clientip)s %(user)s -- %(message)s')
+logger.level("INFO")
 
 connection_sid = {}
 connection_auth_uid = {}
@@ -41,7 +41,7 @@ AUTH = None
 ON_CLIENTEVENT = None
 SERVE_FOREVER = True
 SHUTDOWN = False
-TIMEOUT = 5.0
+TIMEOUT = 300.0
 palace = defaultdict(list)
 
 queue = queue.Queue()
@@ -247,7 +247,7 @@ class NucosServer():
     do_auth is a function handler which accepts 3 arguments: uid, signature, challenge
     """
     
-    def __init__(self,IP,PORT, do_auth=None, single_server=False, timeout=5.0):
+    def __init__(self,IP,PORT, do_auth=None, single_server=False, timeout=300.0):
         global AUTH, ON_CLIENTEVENT
         self.logger = logger
         self.auth_final = None
@@ -279,10 +279,13 @@ class NucosServer():
         else:
             self.srv = SingleConnectionServer((IP,PORT))
         ON_CLIENTEVENT = lambda u,x: self._on_clientEvent(u,x)
-        #TIMEOUT = timeout
+        TIMEOUT = timeout
         self.auth_status = {}
         self.event_callbacks = defaultdict(list)
         
+    def getsockname(self):
+        return self.srv.socket.getsockname()
+
     def _reinitialize(self):
         """
         re-initialize a killed server
@@ -308,6 +311,9 @@ class NucosServer():
         t.start()
         time.sleep(0.2) #startup time for server
         
+    def is_connected(self, conn):
+        return conn in connection_sid.values()
+        
     def ping(self, conn):
         """
         send a ping event and wait for a pong (blocking call, since it expects the answer right away)
@@ -327,7 +333,7 @@ class NucosServer():
         else:
             return False
         
-    def send(self, conn, event, content):
+    def send(self, conn, event, content, room=''):
         """
         the send command for a given connection conn, all other send commands must call send to prevent auth-protocoll confusion
         """
@@ -336,14 +342,17 @@ class NucosServer():
             self.send_later.append((conn, event,content))
             self.logger.log(lvl="WARNING", msg="no send during auth: %s %s %s"%(conn, event,content))
             return True
-        return self._send(conn, event, content)
+        return self._send(conn, event, content, room)
         
-    def _send(self, conn, event, content):
+    def _send(self, conn, event, content, room=''):
         """
         finalize the send process
         """
         self.logger.log(lvl="DEBUG", msg="try to do _send: %s %s %s"%(conn, event,content))
-        data = { "event": event, "content": content }
+        if not room:
+            data = { "event":event, "content":content }
+        else:
+            data = { "event":event, "content":content, "room":room }
         message = NucosOutgoingMessage(data)
         payload,error = message.payload()
         if error:
@@ -374,8 +383,7 @@ class NucosServer():
             for addr, conn in connection_sid.items():
                 self.send(conn, event, content)
                 
-            
-    def send_room(self, room, event, content):
+    def publish(self, room, event, content):
         """
         send a message to all clients in a room
         """
@@ -388,13 +396,15 @@ class NucosServer():
                 for uid in uids:
                     addr = connection_auth_uid[uid]
                     conn = connection_sid[addr]
-                    self.send(conn, event, content)
+                    self.send(conn, event, content, room)
                         
     def join_room(self, room, uid):
         """
-        append a user to a room
+        append a user to a room, if uid is not anonymous and the desired room is not one of the other users (they should stay private)
         """
-        palace[room].append(uid)
+        if not uid=="anonymous" and not room in connection_auth_uid:
+            logger.log(lvl="DEBUG", msg="user %s entered room %s"%(uid,room))
+            palace[room].append(uid)
         
     def _on_clientEvent(self, addr, payload):
         """
@@ -419,7 +429,14 @@ class NucosServer():
         for msg in msgs:
             event = unicoding(msg["event"])
             content = unicoding(msg["content"])
-            logger.log(lvl="INFO", msg="incoming clientEvent: %s | %s"%(event,content), user=uid)
+            if 'room' in msg.keys():
+                room = msg["room"]
+            else:
+                room = ''
+            logger.log(lvl="INFO", msg="incoming clientEvent: %s | %s | %s"%(event,content,room), user=uid)
+            if room:
+                self.publish(room,event,content)
+                return
             if event == "shutdown":
                 self.send(connection_sid[addr], "shutdown", "confirmed")
                 self.shutdown_process.append(uid)
@@ -431,6 +448,8 @@ class NucosServer():
                     self.logger.log(lvl="ERROR", msg="pong received no ping send %s"%msg)
                 self.logger.log(lvl="INFO", msg="pong received")
                 self.queue.put_topic("pong-server", "done")
+            elif event == "subscripe":
+                self.join_room(content, uid)
             else:
                 for _event, funcs in self.event_callbacks.items():
                     if _event == "all":
@@ -442,7 +461,6 @@ class NucosServer():
                     else:
                         continue
             
-        
     def close(self):
         queue.put("kill-server")
         logger.log(lvl="WARNING", msg="server is forced to shut-down now")
@@ -570,7 +588,6 @@ class NucosServer():
             self.in_auth_process.remove(conn)
             self._flush()
         else:
-            #print(dir(conn))
             self._send(conn, "auth_final", "failed")
             self.in_auth_process.remove(conn)
             cleanup(addr,conn)

@@ -22,8 +22,8 @@ class NucosClient():
     
     implements protocol on top of tcp/ip socket
     """
-    logger = Logger('nucosClient')
-    logger.format(["serverip"], '[%(asctime)-15s] %(name)-8s %(levelname)-7s %(serverip)s -- %(message)s')
+    logger = Logger('nucosClient', ["serverip"])
+    logger.format('[%(asctime)-15s] %(name)-8s %(levelname)-7s %(serverip)s -- %(message)s')
     logger.level("INFO")
     
     def __init__(self, IP, PORT, uid = "", on_challenge=None, ping_timeout = 20.0):
@@ -32,6 +32,8 @@ class NucosClient():
         self.PORT = PORT
         self.LISTEN = False
         self.event_callbacks = defaultdict(list)
+        #self.room_callbacks = defaultdict(list)
+        self.room_event_callbacks = defaultdict(dict)
         self.on_connect_callbacks = []
         self.on_disconnect_callbacks = []
         self.uid = uid
@@ -48,13 +50,13 @@ class NucosClient():
         else:
             self.in_auth_process = False
             
-    def start(self,timeout=10.0):
+    def start(self,timeout=60.0):
         """
         start a non-blocking listening thread
         
         
         """
-        self.logger.log(lvl="INFO", msg="try to connect socket", serverip=self.IP)
+        self.logger.log(lvl="DEBUG", msg="try to connect socket", serverip=self.IP)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.settimeout(timeout)
         self.error = self.socket.connect_ex((self.IP, self.PORT))
@@ -74,7 +76,7 @@ class NucosClient():
         handle socket errors
         """
         self.LISTEN = True
-        self.logger.log(lvl="INFO", msg="start listening")
+        self.logger.log(lvl="DEBUG", msg="start listening")
         
         fullData = SocketArray()
         while True:
@@ -82,15 +84,15 @@ class NucosClient():
                 receivedData = SocketArray(self.socket.recv(1024))
             except socket.timeout:
                 self.logger.log(lvl="WARNING", msg="client socket timeout")
-                if not self.ping():
-                    receivedData = SocketArray.empty()
+                self.ping_later(0.2)
+                continue
             except socket.error as ex:
                 self.logger.log(lvl="WARNING", msg="client socket error %s"%ex)
                 receivedData = SocketArray.empty()
             except ex:
                 self.logger.log(lvl="WARNING", msg="another exception occured %s"%ex)
             if not self.LISTEN:
-                self.logger.log(lvl="INFO", msg="stop listening")
+                self.logger.log(lvl="DEBUG", msg="stop listening")
                 receivedData = SocketArray.empty()
             if receivedData:
                 fullData = fullData.ext(receivedData)
@@ -109,6 +111,8 @@ class NucosClient():
             self.socket.close()
             self.is_closed = True
         
+    def is_connected(self):
+        return not self.is_closed
 
     def add_event_callback(self, event, handler):
         """
@@ -125,6 +129,18 @@ class NucosClient():
         """
         delegate = lambda x: handler(x)
         self.event_callbacks[event].append(delegate)
+        
+    def add_room_callback(self, room, handler):
+        #delegate = lambda x: handler(x)
+        #self.room_callbacks[room].append(delegate)
+        self.add_room_event_callback(room, "all", handler)
+        
+    def add_room_event_callback(self, room, event, handler):
+        delegate = lambda x: handler(x)
+        if event in self.room_event_callbacks[room].keys():
+            self.room_event_callbacks[room][event].append(delegate)
+        else:
+            self.room_event_callbacks[room].update({event:[delegate]})
         
     def add_on_connect(self, handler):
         """
@@ -146,13 +162,13 @@ class NucosClient():
         
     def close(self):
         """
-        close protocol of socket
+        close existing connection
         
         
         """
         #time.sleep(1.0)
         self.LISTEN = False
-        self.logger.log(lvl="INFO", msg="try to close existing socket")
+        self.logger.log(lvl="DEBUG", msg="try to close existing socket")
         self.send("shutdown", "now")
         time.sleep(0.1) #waiting for an answer to stop the current listening thread
         if not self.is_closed:
@@ -177,6 +193,18 @@ class NucosClient():
             return True
         else:
             return False
+
+    def ping_later(self, tau):
+        """
+        sends an asynchronious ping to return to listening thread
+        """
+        def ping_later(tau):
+            time.sleep(tau)
+            if not self.ping():
+                self.close()
+        t = Thread(target=ping_later, args=(tau,)) 
+        t.start()
+        
         
     def send(self, event, content):
         """
@@ -192,19 +220,22 @@ class NucosClient():
             
         """
         if self.in_auth_process:
-            self.send_later.append((event,content))
+            self.send_later.append((event,content,''))
             self.logger.log(lvl="WARNING", msg="no send during auth: %s %s"%(event,content))
             return
         return self._send(event, content)
         
         
-    def _send(self, event, content):
+    def _send(self, event, content, room=''):
         """
         internal raw send command, do not use from external since it may confuse the auth process
         """
-        data = {"event":event, "content":content}
-        outgoing = NucosOutgoingMessage(data)
-        
+        if not room:
+            data = { "event":event, "content":content }
+        else:
+            data = { "event":event, "content":content, "room":room }
+
+        outgoing = NucosOutgoingMessage(data)        
         payload,error = outgoing.payload()
             
         if error:
@@ -222,21 +253,22 @@ class NucosClient():
             return False
             #raise Exception("pipe broken")
         
-    #def prepare_auth(self, uid, on_challenge=None):
-    #    """
-    #    initialize the client side of the general authentification protocol
-    #    
-    #    on_challenge is signature delivering function with the content as argument, see self.send().
-    #    """#
-
-    #    self.uid = uid
+    def publish(self, room, event, content):
+        if self.in_auth_process:
+            self.send_later.append((event,content,room))
+            self.logger.log(lvl="WARNING", msg="no send during auth: %s %s %s"%(event,content,room))
+            return
+        return self._send(event, content, room)
+    
+    def subscripe(self, room):
+        self.send("subscripe", room)
         
     def _flush(self):
         """
         send all messages which are in the message queue and not processed yet for some reason, e.g. because of auth process
         """
-        for event,content in self.send_later:
-            self.send(event,content)
+        for event,content,room in self.send_later:
+            self.send(event,content,room)
         self.send_later = []
         
     def _on_serverEvent(self, payload):
@@ -262,7 +294,11 @@ class NucosClient():
         for msg in msgs: #from server always event, content form is valid
             event = msg["event"]
             content = msg["content"]
-            self.logger.log(lvl="INFO", msg="incoming serverEvent: %s | %s"%(event, content))
+            if 'room' in msg.keys():
+                room = msg["room"]
+            else:
+                room = ""
+            self.logger.log(lvl="DEBUG", msg="incoming serverEvent: %s | %s | %s"%(event, content, room))
             if event == "shutdown":
                 #time.sleep(0.1)
                 self.send("shutdown","confirmed")
@@ -281,7 +317,7 @@ class NucosClient():
                 self._send("signature",signature)
             elif event == "auth_final":
                 if content == "success":
-                    self.logger.log(lvl="INFO", msg="socket auth_final: %s"%content)
+                    self.logger.log(lvl="DEBUG", msg="socket auth_final: %s"%content)
                     self._send("thanks","i am in")
                     self.in_auth_process = False
                     self._flush()
@@ -297,6 +333,21 @@ class NucosClient():
                 self.logger.log(lvl="INFO", msg="pong received")
                 self.queue.put_topic("pong-client", "done")
             else:
+                #if room: #prevents the event_callbacks
+                for _room, func_dicts in self.room_event_callbacks.items():
+                    if _room == room:
+                        for _event, funcs in func_dicts.items():
+                            if _event == "all":
+                                for f in funcs: 
+                                    f(content)
+                            elif _event == event:
+                                for f in funcs: 
+                                    f(content)
+                            else:
+                                continue
+                    else:
+                        continue
+                #else:
                 for _event, funcs in self.event_callbacks.items():
                     if _event == "all":
                         for f in funcs: 

@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<testsuite errors="0" failures="0" name="UTestClient-20160831173209" tests="1" time="3.305">
+	<testcase classname="UTestClient" name="test_join_room" time="3.305"/>
+	<system-out>
+<![CDATA[[('weather ', u'sunny')]
+]]>	</system-out>
+	<system-err>
+<![CDATA[]]>	</system-err>
+</testsuite>

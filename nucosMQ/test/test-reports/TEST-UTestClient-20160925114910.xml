@@ -1,0 +1,10 @@
+<?xml version="1.0" ?>
+<testsuite errors="0" failures="0" name="UTestClient-20160925114910" tests="1" time="16.518">
+	<testcase classname="UTestClient" name="test_timeout_ping" time="16.518"/>
+	<system-out>
+<![CDATA[Event is ping ...
+Event is ping ...
+]]>	</system-out>
+	<system-err>
+<![CDATA[]]>	</system-err>
+</testsuite>

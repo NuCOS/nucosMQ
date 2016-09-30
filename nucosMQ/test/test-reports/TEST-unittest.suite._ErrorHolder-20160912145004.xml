@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<testsuite errors="1" failures="0" name="unittest.suite._ErrorHolder-20160912145004" tests="1" time="0.000">
+	<testcase classname="unittest.suite._ErrorHolder" name="UTestClient)" time="0.000">
+		<error message="first argument must be callable or None" type="TypeError">
+<![CDATA[Traceback (most recent call last):
+  File "testNucosMQ.py", line 47, in setUpClass
+    cls.client = NucosClient(socketIP, socketPort, uid="testuser", on_challenge=on_challenge)
+  File "../../nucosMQ/nucosClient.py", line 36, in __init__
+    self.room_event_callbacks = defaultdict(defaultdict(list))
+TypeError: first argument must be callable or None
+]]>		</error>
+	</testcase>
+	<system-out>
+<![CDATA[]]>	</system-out>
+	<system-err>
+<![CDATA[]]>	</system-err>
+</testsuite>
