@@ -25,7 +25,7 @@ from .nucosMessage import NucosIncomingMessage, NucosOutgoingMessage, SocketArra
 
 logger = Logger('nucosServer', ["clientip","user"])
 logger.format('[%(asctime)-15s] %(name)-8s %(levelname)-7s %(clientip)s %(user)s -- %(message)s')
-logger.level("INFO")
+logger.level("DEBUG")
 
 connection_sid = {}
 connection_auth_uid = {}
@@ -160,11 +160,16 @@ class SingleConnectionServer():
     """
     A single connection Server: accepts only one connection
     """
-    def __init__(self, IP_PORT):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    def __init__(self, IP_PORT, udp=False):
+        if udp:
+            socktype = socket.SOCK_DGRAM
+        else:
+            socktype = socket.SOCK_STREAM
+        self.socket = socket.socket(socket.AF_INET, socktype)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.IP_PORT = IP_PORT
         self.no_auth = False
+        self.udp = udp
         
     def serve_forever(self):
         global AUTH, ON_CLIENTEVENT
@@ -174,10 +179,11 @@ class SingleConnectionServer():
             logger.log(lvl="DEBUG", msg="single server socket exception %s"%ex)
             self.socket.close()
             raise Exception
-        self.socket.listen(1)
-        (conn, addr) = self.socket.accept()
-        logger.log(msg= 'Incoming connection (single-server)', clientip=addr)
-        connection_sid.update({addr:conn})     #append the socket connection
+        if not self.udp:
+            self.socket.listen(1)
+            (conn, addr) = self.socket.accept()
+            logger.log(msg= 'Incoming connection (single-server)', clientip=addr)
+            connection_sid.update({addr:conn})     #append the socket connection
         if AUTH:
             t = Thread(target=self.authenticate, args=(addr,conn))
             t.daemon = True
@@ -185,9 +191,13 @@ class SingleConnectionServer():
         else:
             self.no_auth = True
         fullData = SocketArray()
+        logger.log(lvl="DEBUG", msg="start listening")
         while True:
             try:
-                receivedData = SocketArray(conn.recv(1024))
+                if not self.udp:
+                    receivedData = SocketArray(conn.recv(1024))
+                else:
+                    receivedData = self.socket.recvfrom(1024)
             except socket.timeout:
                 logger.log(lvl="WARNING", msg="server socket timeout")
                 receivedData = SocketArray.empty()
@@ -203,6 +213,11 @@ class SingleConnectionServer():
                 logger.log(lvl="DEBUG", msg="single server killed")
                 break
             if receivedData:
+                if self.udp:
+                    receivedData = receivedData[0]
+                    addr = receivedData[1]                   
+                    logger.log(lvl="DEBUG", msg="message received %s"%receivedData)
+                    
                 fullData = fullData.ext(receivedData)
                 if len(receivedData) == 1024:
                     logger.log(lvl="DEBUG", msg="max length 1024 %s"%receivedData)
@@ -247,7 +262,7 @@ class NucosServer():
     do_auth is a function handler which accepts 3 arguments: uid, signature, challenge
     """
     
-    def __init__(self,IP,PORT, do_auth=None, single_server=False, timeout=300.0):
+    def __init__(self,IP,PORT, do_auth=None, single_server=False, timeout=300.0, udp=False):
         global AUTH, ON_CLIENTEVENT
         self.logger = logger
         self.auth_final = None
@@ -257,6 +272,7 @@ class NucosServer():
         self.send_later = []
         self.queue = NucosQueue()
         self.shutdown_process = []
+        self.udp = udp
         
         if isclass(do_auth):
             AUTH = self._auth_protocoll
@@ -274,10 +290,12 @@ class NucosServer():
         else:
             raise Exception("only class as do_auth accepted")
         self.single_server = single_server
-        if not single_server:
+        if udp:
+            self.single_server = True
+        if not self.single_server:
             self.srv = ThreadingTCPServer((IP, PORT), ServerHandler)
         else:
-            self.srv = SingleConnectionServer((IP,PORT))
+            self.srv = SingleConnectionServer((IP,PORT), udp=self.udp)
         ON_CLIENTEVENT = lambda u,x: self._on_clientEvent(u,x)
         TIMEOUT = timeout
         self.auth_status = {}
@@ -305,7 +323,7 @@ class NucosServer():
         """
         start a non-blocking server
         """
-        self.logger.log(lvl="INFO", msg="try to start server")
+        self.logger.log(lvl="INFO", msg="... try to start server")
         t = Thread(target=self.srv.serve_forever)
         t.daemon = True
         t.start()
@@ -348,6 +366,8 @@ class NucosServer():
         """
         finalize the send process
         """
+        if self.udp:
+            return
         self.logger.log(lvl="DEBUG", msg="try to do _send: %s %s %s"%(conn, event,content))
         if not room:
             data = { "event":event, "content":content }
@@ -434,6 +454,17 @@ class NucosServer():
             else:
                 room = ''
             logger.log(lvl="INFO", msg="incoming clientEvent: %s | %s | %s"%(event,content,room), user=uid)
+            if self.udp:
+                for _event, funcs in self.event_callbacks.items():
+                    if _event == "all":
+                        for f in funcs: 
+                            f(content)
+                    if _event == event:
+                        for f in funcs:
+                            f(content)
+                    else:
+                        continue
+                return
             if room:
                 self.publish(room,event,content)
                 return

@@ -8,6 +8,7 @@ logger = Logger("globalLogger", [])
 from .nucosClient import NucosClient
 from .nucosServer import NucosServer
 from .nucosLink import NucosLink
+from .nucosClientUDP import NucosClientUDP
 
 from .nucosMessage import unicoding
 

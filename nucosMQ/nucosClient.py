@@ -32,7 +32,6 @@ class NucosClient():
         self.PORT = PORT
         self.LISTEN = False
         self.event_callbacks = defaultdict(list)
-        #self.room_callbacks = defaultdict(list)
         self.room_event_callbacks = defaultdict(dict)
         self.on_connect_callbacks = []
         self.on_disconnect_callbacks = []
@@ -131,8 +130,6 @@ class NucosClient():
         self.event_callbacks[event].append(delegate)
         
     def add_room_callback(self, room, handler):
-        #delegate = lambda x: handler(x)
-        #self.room_callbacks[room].append(delegate)
         self.add_room_event_callback(room, "all", handler)
         
     def add_room_event_callback(self, room, event, handler):

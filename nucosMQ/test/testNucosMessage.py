@@ -7,7 +7,7 @@ sys.path.append('../../')
 
 from nucosMQ import unicoding
 
-class UTestClient(unittest.TestCase):
+class UTestMessage(unittest.TestCase):
     
     def tearDown(self):
         pass
