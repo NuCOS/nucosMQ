@@ -156,6 +156,11 @@ class UTestClient(unittest.TestCase):
 if __name__ == '__main__':
     try:
         import xmlrunner
-        unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'))
+        xml = True
     except:
+        xml = False
+
+    if xml:        
+        unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'))
+    else:
         unittest.main()
