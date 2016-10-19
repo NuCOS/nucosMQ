@@ -81,6 +81,14 @@ the event, the second is the content.
 
     client.send("test-event", "hello server")
 
+Also the server may send only to one client, but he has to use the publish-method
+
+.. code-block:: python
+
+    server.publish(client_name, "test-event", "hello server")
+
+The *client_name* is the *uid* if the client is authenticated. It is also the room-name in which the client is automatically put into.
+How *rooms* work otherwise, we will see in the next paragraph.
 
 Publish/Subscripe 
 -----------------
@@ -91,7 +99,8 @@ A client may subscripe to a topic, which is also called *room* via
 
     client.subscripe("weather")
 
-From now on every message which is published on that topic will reach also that client.
+From now on every message which is published on that topic will reach also that client. As already mentioned every client is put into a room of its own name,
+the *uid* automatically after the authentification.
 
 .. code-block:: python
 

@@ -154,6 +154,12 @@ the event, the second is the content.</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s">&quot;test-event&quot;</span><span class="p">,</span> <span class="s">&quot;hello server&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>Also the server may send only to one client, but he has to use the publish-method</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">server</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">client_name</span><span class="p">,</span> <span class="s">&quot;test-event&quot;</span><span class="p">,</span> <span class="s">&quot;hello server&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <em>client_name</em> is the <em>uid</em> if the client is authenticated. It is also the room-name in which the client is automatically put into.
+How <em>rooms</em> work otherwise, we will see in the next paragraph.</p>
 </div>
 <div class="section" id="publish-subscripe">
 <h2>Publish/Subscripe<a class="headerlink" href="#publish-subscripe" title="Permalink to this headline">¶</a></h2>
@@ -161,7 +167,8 @@ the event, the second is the content.</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">client</span><span class="o">.</span><span class="n">subscripe</span><span class="p">(</span><span class="s">&quot;weather&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>From now on every message which is published on that topic will reach also that client.</p>
+<p>From now on every message which is published on that topic will reach also that client. As already mentioned every client is put into a room of its own name,
+the <em>uid</em> automatically after the authentification.</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">server</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="s">&quot;weather&quot;</span><span class="p">,</span> <span class="s">&quot;today&quot;</span><span class="p">,</span> <span class="s">&quot;sunny&quot;</span><span class="p">)</span>
 <span class="n">another_client</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="s">&quot;weather&quot;</span><span class="p">,</span> <span class="s">&quot;yesterday&quot;</span><span class="p">,</span> <span class="s">&quot;rain&quot;</span><span class="p">)</span>
 </pre></div>
