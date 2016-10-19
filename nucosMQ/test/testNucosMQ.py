@@ -14,6 +14,11 @@ from nucosMQ import NucosServer
 
 from nucosMQ import logger as globalLogger
 
+from nucosMQ import version
+import nucosMQ
+print(nucosMQ.__file__)
+print("VERSION: %s"%version)
+
 res = []
 
 class Auth():

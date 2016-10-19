@@ -6,6 +6,10 @@ sys.path.append('../../')
 
 
 from nucosMQ import unicoding
+from nucosMQ import version
+import nucosMQ
+print(nucosMQ.__file__)
+print("VERSION: %s"%version)
 
 class UTestMessage(unittest.TestCase):
     

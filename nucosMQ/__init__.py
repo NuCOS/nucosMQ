@@ -13,3 +13,5 @@ from .nucosClientUDP import NucosClientUDP
 from .nucosMessage import unicoding
 
 from .nucos23 import ispython3
+
+from .version import version

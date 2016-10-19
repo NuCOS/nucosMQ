@@ -10,7 +10,10 @@ socketIP = "127.0.0.1"
 socketPort = 4000
 
 from nucosMQ import NucosServer, NucosClientUDP
-
+from nucosMQ import version
+import nucosMQ
+print(nucosMQ.__file__)
+print("VERSION: %s"%version)
 
 res = []
 
