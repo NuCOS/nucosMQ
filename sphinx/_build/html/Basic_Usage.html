@@ -1,0 +1,237 @@
+
+
+<!doctype html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Basic Usage &mdash; nucosMQ 0.0.4 documentation</title>
+    
+    <link rel="stylesheet" href="_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.4',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/bizstyle.js"></script>
+    <link rel="top" title="nucosMQ 0.0.4 documentation" href="index.html" />
+    <link rel="prev" title="Install" href="Install.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="Install.html" title="Install"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">nucosMQ 0.0.4 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Basic Usage</a><ul>
+<li><a class="reference internal" href="#server-client-connection">Server-Client Connection</a></li>
+<li><a class="reference internal" href="#messages">Messages</a></li>
+<li><a class="reference internal" href="#publish-subscripe">Publish/Subscripe</a></li>
+<li><a class="reference internal" href="#ping">Ping</a></li>
+<li><a class="reference internal" href="#link-connection">Link Connection</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="Install.html"
+                        title="previous chapter">Install</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Basic_Usage.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="basic-usage">
+<span id="id1"></span><h1>Basic Usage<a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h1>
+<div class="sidebar">
+<p class="first sidebar-title">Short</p>
+<ul class="last simple">
+<li>There are two types of connection: <em>server-client</em> and <em>link</em></li>
+<li>The principle usage is shown in the tests</li>
+</ul>
+</div>
+<div class="section" id="server-client-connection">
+<span id="index-0"></span><h2>Server-Client Connection<a class="headerlink" href="#server-client-connection" title="Permalink to this headline">¶</a></h2>
+<p>To work with the server-client connection you should import the following</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">nucosMQ</span> <span class="kn">import</span> <span class="n">NucosClient</span>
+<span class="kn">from</span> <span class="nn">nucosMQ</span> <span class="kn">import</span> <span class="n">NucosServer</span>
+</pre></div>
+</div>
+<p>A usual working example would be</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">socketIP</span> <span class="o">=</span> <span class="s">&quot;127.0.0.1&quot;</span>
+<span class="n">socketPort</span> <span class="o">=</span> <span class="mi">4000</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">NucosClient</span><span class="p">(</span><span class="n">socketIP</span><span class="p">,</span> <span class="n">socketPort</span><span class="p">,</span> <span class="n">uid</span><span class="o">=</span><span class="s">&quot;testuser&quot;</span><span class="p">,</span> <span class="n">on_challenge</span><span class="o">=</span><span class="n">on_challenge</span><span class="p">)</span>
+<span class="n">server</span> <span class="o">=</span> <span class="n">NucosServer</span><span class="p">(</span><span class="n">socketIP</span><span class="p">,</span> <span class="n">socketPort</span><span class="p">,</span> <span class="n">do_auth</span><span class="o">=</span><span class="n">Auth</span><span class="p">,</span> <span class="n">single_server</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+<span class="n">server</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+<span class="n">client</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>On server side the Auth class is needed in case of authentication. It implements the methods <em>auth_final</em> and <em>challenge</em>, like in the following simplified example</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">Auth</span><span class="p">():</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">globalLogger</span>
+    <span class="k">def</span> <span class="nf">auth_final</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uid</span><span class="p">,</span> <span class="n">signature</span><span class="p">,</span> <span class="n">challenge</span><span class="p">):</span>
+        <span class="n">allowed</span> <span class="o">=</span> <span class="n">signature</span> <span class="o">==</span> <span class="s">&quot;1234&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">allowed</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+    <span class="k">def</span> <span class="nf">auth_challenge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uid</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;1234&quot;</span>
+</pre></div>
+</div>
+<p>On client side the function on_challenge returns a signature after digestion of an incoming challenge:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">on_challenge</span><span class="p">(</span><span class="n">challenge</span><span class="p">):</span>
+    <span class="c">#do something interesting with the challenge ...</span>
+    <span class="k">return</span> <span class="s">&quot;1234&quot;</span>
+</pre></div>
+</div>
+<p>Both, the server and the client may be started with the function call <em>start()</em>. This call is <em>non-blocking</em> on both sides. That means, the connections
+runs in the background and thread-safe.</p>
+<p>To interact with the connection one may implement on server side and on client side callbacks via</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">alpha</span><span class="p">(</span><span class="n">content</span><span class="p">):</span>
+    <span class="c">#do something with content, an unicode</span>
+    <span class="k">pass</span>
+<span class="c">#...</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">add_event_callback</span><span class="p">(</span><span class="s">&quot;test-event alpha&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where alpha is an arbitrary own function, which is called by the process automatically whenever the event (here &#8220;test-event alpha&#8221;) comes in and carries a parameter,
+which is the content of the message.</p>
+</div>
+<div class="section" id="messages">
+<h2>Messages<a class="headerlink" href="#messages" title="Permalink to this headline">¶</a></h2>
+<p>A message contains an event, a content and maybe a room. After the connection is established the client can send messages to the server, the first parameter is always
+the event, the second is the content.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s">&quot;test-event&quot;</span><span class="p">,</span> <span class="s">&quot;hello server&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="publish-subscripe">
+<h2>Publish/Subscripe<a class="headerlink" href="#publish-subscripe" title="Permalink to this headline">¶</a></h2>
+<p>A client may subscripe to a topic, which is also called <em>room</em> via</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">client</span><span class="o">.</span><span class="n">subscripe</span><span class="p">(</span><span class="s">&quot;weather&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>From now on every message which is published on that topic will reach also that client.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">server</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="s">&quot;weather&quot;</span><span class="p">,</span> <span class="s">&quot;today&quot;</span><span class="p">,</span> <span class="s">&quot;sunny&quot;</span><span class="p">)</span>
+<span class="n">another_client</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="s">&quot;weather&quot;</span><span class="p">,</span> <span class="s">&quot;yesterday&quot;</span><span class="p">,</span> <span class="s">&quot;rain&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A server may publish in all rooms, a client only if he is subscriped in that room. A callback may be related to rooms, events and a combination of both:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">client</span><span class="o">.</span><span class="n">add_event_callback</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
+<span class="n">client</span><span class="o">.</span><span class="n">add_room_callback</span><span class="p">(</span><span class="n">room</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
+<span class="n">client</span><span class="o">.</span><span class="n">add_room_event_callback</span><span class="p">(</span><span class="n">room</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The Server-Client-connection is closed by</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">server</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Since it is a running background process this call may take time to proceed.</p>
+</div>
+<div class="section" id="ping">
+<h2>Ping<a class="headerlink" href="#ping" title="Permalink to this headline">¶</a></h2>
+<p>To test a connection you may call</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">client</span><span class="o">.</span><span class="n">ping</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>If everything works fine, the server is answering with a <em>pong</em> in a reasonable time.</p>
+</div>
+<div class="section" id="link-connection">
+<h2>Link Connection<a class="headerlink" href="#link-connection" title="Permalink to this headline">¶</a></h2>
+<p>A Link is a one-to-one connection. It works without authentification and it is established as follows</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">nucosMQ</span> <span class="kn">import</span> <span class="n">NucosLink</span>
+<span class="n">link_1</span> <span class="o">=</span> <span class="n">NucosLink</span><span class="p">()</span>
+<span class="n">link_2</span> <span class="o">=</span> <span class="n">NucosLink</span><span class="p">()</span>
+<span class="c">#now connect the two of them ...</span>
+<span class="n">link_1</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s">&quot;127.0.0.1&quot;</span><span class="p">,</span><span class="mi">4000</span><span class="p">)</span>
+<span class="n">link_2</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s">&quot;127.0.0.1&quot;</span><span class="p">,</span> <span class="mi">4000</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The connection works via <em>send</em> and <em>callbacks</em> in a fully symmetric way.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">link_2</span><span class="o">.</span><span class="n">add_event_callback</span><span class="p">(</span><span class="s">&quot;test-alpha&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>
+<span class="n">link_1</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s">&quot;test-alpha&quot;</span><span class="p">,</span> <span class="s">&quot;hallo&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The Link-connection is closed by</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">link_2</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">link_1</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="Install.html" title="Install"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">nucosMQ 0.0.4 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, Oliver Braun, Johannes Eckstein.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.1.
+    </div>
+  </body>
+</html>
