@@ -65,9 +65,10 @@ setup(name='python-' + name,
       description='nucosMQ - a pure python message module',
       long_description=long_description,
       url='https://github.com/docbo141/nucosMQ',
+      download_url = 'https://github.com/docbo141/nucosMQ/tarball/0.0.1',
       author='Oliver Braun',
       author_email='oliver.braun@nucos.de',
-      license='ASL',
+      license='MIT',
       # https://pypi.python.org/pypi?%3Aaction=list_classifiers
       classifiers=[
           'Development Status :: 1 - Planning',
