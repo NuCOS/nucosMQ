@@ -26,7 +26,6 @@ def my_test_suite():
 rootdir = os.path.abspath(os.path.dirname(__file__))
 
 # Restructured text project description read from file
-# Restructured text project description read from file
 try:
     from pypandoc import convert
     read_md = lambda f: convert(f, 'rst')
