@@ -265,7 +265,7 @@ class NucosClient():
         send all messages which are in the message queue and not processed yet for some reason, e.g. because of auth process
         """
         for event,content,room in self.send_later:
-            self.send(event,content,room)
+            self._send(event,content,room)
         self.send_later = []
         
     def _on_serverEvent(self, payload):
