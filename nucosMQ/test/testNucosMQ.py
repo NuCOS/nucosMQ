@@ -52,10 +52,8 @@ class UTestClient(unittest.TestCase):
         cls.client = NucosClient(socketIP, socketPort, uid="testuser", on_challenge=on_challenge)
         cls.server = NucosServer(socketIP, socketPort, do_auth=Auth, single_server=False)
         cls.server.start()
-        
-                                
+                                        
     def setUp(self):
-        #self.client.prepare_auth( "testuser", on_challenge)
         self.client.start()
         time.sleep(0.5)
         
@@ -73,18 +71,10 @@ class UTestClient(unittest.TestCase):
         result = self.client.ping()
         self.assertTrue(result)
         
-    ##def test_timeout_ping(self):
-    #    self.client.ping()
-    #    time.sleep(12.0)
-        #self.server.close()
-        #time.sleep(10.0)
-        
-        
     def test_client_send(self):
         self.client.send("test-event", "a"*971) #test case for exactly 1024 length message
-        #result = self.client.ping() #blocking until true or false
-        #self.assertTrue(result)
-        #self.client.close()
+        result = self.client.ping() #blocking until true or false
+        self.assertTrue(result)
         
     def test_join_room(self):
         self.client.subscripe("weather")
