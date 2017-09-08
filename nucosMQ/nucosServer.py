@@ -287,6 +287,7 @@ class NucosServer():
                 raise Exception("auth class has no auth_challenge")
         elif do_auth is None:
             self.logger.log(lvl="INFO", msg="no auth selected")
+            AUTH = None
         else:
             raise Exception("only class as do_auth accepted")
         self.single_server = single_server

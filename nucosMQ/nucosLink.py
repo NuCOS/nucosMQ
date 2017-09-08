@@ -8,6 +8,7 @@ from .nucosQueue import NucosQueue
 from .nucosServer import NucosServer
 from .nucosClient import NucosClient
 
+
 class NucosLink():
     """
     base symmetric socket class (can be client or server, depending on the bind/connect call)
