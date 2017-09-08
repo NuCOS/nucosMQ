@@ -11,8 +11,8 @@ fi
 ###################################
 echo "----------------------------------------------------"
 {
-conda create --name $PACKAGE'3_5' python=3.5 -y
-source activate $PACKAGE'3_5'
+conda create --name $PACKAGE'3_6' python=3.6 -y
+source activate $PACKAGE'3_6'
 } || { 
 virtualenv -p $(which python3) $VENV/py3
 source $VENV/py3/bin/activate 
