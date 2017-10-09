@@ -16,7 +16,7 @@ A publish/subscribe logic is implemented, where clients can subscribe to a topic
 ```
 pip install nucosMQ
 ```
-or download the tarball at [https://github.com/DocBO/nucosMQ](https://github.com/DocBO/nucosMQ), unzip and type
+or download the tarball at [https://github.com/NuCOS/nucosMQ](https://github.com/NuCOS/nucosMQ), unzip and type
 ```
 python setup.py install
 ```
