@@ -22,7 +22,7 @@ python setup.py install
 ```
 
 ## Documentation
-[https://pythonhosted.org/nucosMQ](https://pythonhosted.org/nucosMQ)
+[http://nucosmq.readthedocs.io/en/latest/#](http://nucosmq.readthedocs.io/en/latest/#)
 
 ## Recommended test runner
 ```
